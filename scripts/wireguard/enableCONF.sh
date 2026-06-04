@@ -1,37 +1,37 @@
 #!/bin/bash
 
-### Constants
+### Constantes
 setupVars="/etc/pivpn/wireguard/setupVars.conf"
 
 # shellcheck disable=SC1090
 source "${setupVars}"
 
-### Functions
+### Funciones
 err() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
 }
 
 helpFunc() {
-  echo "::: Enables client conf profiles"
+  echo "::: Habilita perfiles de configuración de clientes"
   echo ":::"
-  echo -n "::: Usage: pivpn <-on|on> [-h|--help] [-v] "
-  echo "[<client-1> ... [<client-2>] ...]"
+  echo -n "::: Uso: pivpn <-on|on> [-h|--help] [-v] "
+  echo "[<cliente-1> ... [<cliente-2>] ...]"
   echo ":::"
-  echo "::: Commands:"
-  echo ":::  [none]               Interactive mode"
-  echo ":::  <client>             Client"
-  echo ":::  -y,--yes             Enable client(s) without confirmation"
-  echo ":::  -v                   Show disabled clients only"
-  echo ":::  -h,--help            Show this help dialog"
+  echo "::: Comandos:"
+  echo ":::  [ninguno]            Modo interactivo"
+  echo ":::  <cliente>            Cliente"
+  echo ":::  -y,--yes             Habilitar cliente(s) sin confirmación"
+  echo ":::  -v                   Mostrar solo clientes deshabilitados"
+  echo ":::  -h,--help            Mostrar este diálogo de ayuda"
 }
 
 ### Script
 if [[ ! -f "${setupVars}" ]]; then
-  err "::: Missing setup vars file!"
+  err "::: ¡Falta el archivo de variables de configuración!"
   exit 1
 fi
 
-# Parse input arguments
+# Analizar argumentos de entrada
 while [[ "$#" -gt 0 ]]; do
   _key="${1}"
 
@@ -57,7 +57,7 @@ done
 cd /etc/wireguard || exit
 
 if [[ ! -s configs/clients.txt ]]; then
-  err "::: There are no clients to change"
+  err "::: No hay clientes para modificar"
   exit 1
 fi
 
@@ -69,7 +69,7 @@ fi
 mapfile -t LIST < <(awk '{print $1}' configs/clients.txt)
 
 if [[ "${#CLIENTS_TO_CHANGE[@]}" -eq 0 ]]; then
-  echo -e "::\e[4m  Client list  \e[0m::"
+  echo -e "::\e[4m  Lista de clientes  \e[0m::"
   len="${#LIST[@]}"
   COUNTER=1
 
@@ -78,12 +78,12 @@ if [[ "${#CLIENTS_TO_CHANGE[@]}" -eq 0 ]]; then
     ((COUNTER++))
   done
 
-  echo -n "Please enter the Index/Name of the Client to be enabled "
-  echo -n "from the list above: "
+  echo -n "Por favor, introduce el Índice/Nombre del Cliente a habilitar "
+  echo -n "de la lista anterior: "
   read -r CLIENTS_TO_CHANGE
 
   if [[ -z "${CLIENTS_TO_CHANGE}" ]]; then
-    err "::: You can not leave this blank!"
+    err "::: ¡No puedes dejar esto en blanco!"
     exit 1
   fi
 fi
@@ -98,16 +98,16 @@ for CLIENT_NAME in "${CLIENTS_TO_CHANGE[@]}"; do
   fi
 
   if ! grep -q "^${CLIENT_NAME} " configs/clients.txt; then
-    echo -e "::: \e[1m${CLIENT_NAME}\e[0m does not exist"
+    echo -e "::: \e[1m${CLIENT_NAME}\e[0m no existe"
   else
     if [[ -n "${CONFIRM}" ]]; then
       REPLY="y"
     else
-      read -r -p "Confirm you want to enable ${CLIENT_NAME}? [Y/n] "
+      read -r -p "¿Confirmas que quieres habilitar ${CLIENT_NAME}? [Y/n] "
     fi
 
     if [[ "${REPLY}" =~ ^[Yy]$ ]] || [[ -z "${REPLY}" ]]; then
-      # Enable the peer section from the server config
+      # Habilitar la sección del peer en la configuración del servidor
       echo "${CLIENT_NAME}"
 
       sed_pattern="/### begin ${CLIENT_NAME} ###/,"
@@ -115,26 +115,26 @@ for CLIENT_NAME in "${CLIENTS_TO_CHANGE[@]}"; do
       sed -e "${sed_pattern}" -i wg0.conf
       unset sed_pattern
 
-      echo "::: Updated server config"
+      echo "::: Configuración del servidor actualizada"
       ((CHANGED_COUNT++))
-      echo "::: Successfully enabled ${CLIENT_NAME}"
+      echo "::: Se habilitó correctamente ${CLIENT_NAME}"
     fi
   fi
 done
 
-# Restart WireGuard only if some clients were actually deleted
+# Reiniciar WireGuard solo si realmente se habilitaron algunos clientes
 if [[ "${CHANGED_COUNT}" -gt 0 ]]; then
   if [[ "${PLAT}" == 'Alpine' ]]; then
     if rc-service wg-quick restart; then
-      echo "::: WireGuard reloaded"
+      echo "::: WireGuard recargado"
     else
-      err "::: Failed to reload WireGuard"
+      err "::: Error al recargar WireGuard"
     fi
   else
     if systemctl reload wg-quick@wg0; then
-      echo "::: WireGuard reloaded"
+      echo "::: WireGuard recargado"
     else
-      err "::: Failed to reload WireGuard"
+      err "::: Error al recargar WireGuard"
     fi
   fi
 fi
