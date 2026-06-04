@@ -5,7 +5,7 @@ _pivpn() {
   COMPREPLY=()
   cur="${COMP_WORDS[COMP_CWORD]}"
   dashopts="-a -c -d -l -qr -r -h -u -up -bk -off -on"
-  opts="add clients debug list qrcode remove help uninstall update"
+  opts="agregar clientes, lista de depuración, códigos QR, eliminar, ayuda, desinstalar, actualizar"
   opts="${opts} backup (temp) off (temp) on"
 
   if [[ "${#COMP_WORDS[@]}" -eq 2 ]]; then
