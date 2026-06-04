@@ -15,11 +15,11 @@
 [![Generic badge](https://img.shields.io/badge/status-page-blue.svg)](https://stats.uptimerobot.com/8X64yTjrJO)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
-PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) en un servidor VPN utilizando uno o ambos de los siguientes protocolos VPN gratuitos de código abierto:
+PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) o PC en un servidor VPN utilizando ambos o uno de los siguientes protocolos VPN gratuitos de código abierto:
 * [WireGuard](https://www.wireguard.com/)
 * [OpenVPN](https://openvpn.net)
 
-La misión principal de este script es permitir que un usuario tenga una VPN lo más económica posible en casa sin necesidad de ser un experto en tecnología. Por eso, PiVPN está diseñado para funcionar en una Raspberry Pi (aprox $40 USD), un instalador de un solo comando y una gestión sencilla de la VPN con el comando 'pivpn'.
+La misión principal de este script es permitir que un usuario tenga una VPN lo más económica posible en casa sin necesidad de ser un experto en tecnología. Por eso, PiVPN está diseñado para funcionar en una Raspberry Pi (aprox $35 USD), es un instalador de un solo comando que le permitirá una gestión sencilla de la VPN con el uso del comando 'pivpn'.
 
 Dicho esto...
 
