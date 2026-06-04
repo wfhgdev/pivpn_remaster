@@ -97,7 +97,7 @@ Nuestro método de contacto preferido es a través de la página de discusiones 
 
 También puedes contactarnos en:
 
-* #pivpn en [libera.chat] (Red IRC)
+* #pivpn en [libera.chat](https://libera.chat) (Red IRC) Este es un texto con <span title="Internet Relay Chat es un protocolo de comunicación basado en texto que permite debates entre personas">un tooltip</span>.   
 * #pivpn:matrix.org [matrix.org](https://matrix.org)
 * Reddit en [r/pivpn](https://www.reddit.com/r/pivpn/)
 
