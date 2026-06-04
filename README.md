@@ -32,7 +32,7 @@ PiVPN también debería funcionar con la mayoría de las distribuciones basadas 
 ----
 ## Instalación
 
-### Metodo 1 (Estandar)
+### Metodo 1 (Estándar)
 
 ```Shell
 curl https://raw.githubusercontent.com/Masterwilledu/pivpn/master/auto_install/install.sh | bash
