@@ -1,11 +1,11 @@
-> [!WARNING]
-> PiVPN se mantiene con el máximo esfuerzo posible; para obtener más información, consulte [aquí](https://github.com/pivpn/pivpn/releases/tag/v4.6.1). El anuncio anterior se encuentra [aquí](https://github.com/pivpn/pivpn/releases/tag/v4.6.0).
+> [!ADVERTENCIA]
+> PiVPN se mantiene con el máximo esfuerzo posible; para obtener más información consulte [aquí](https://github.com/pivpn/pivpn/releases/tag/v4.6.1). La versión anterior se encuentra [aquí](https://github.com/pivpn/pivpn/releases/tag/v4.6.0).
 
 ![Pivpn Banner](pivpnbanner.png)
 
 ![Logos](logos.jpg)
 
-**[PIVPN.IO](https://pivpn.io)** | **[DOCUMENTATION](https://docs.pivpn.io)**
+**[PIVPN.IO](https://pivpn.io)** | **[DOCUMENTACIÓN](https://docs.pivpn.io)**
 
 
 [![Website shields.io](https://img.shields.io/website-up-down-green-red/https/pivpn.io.svg)](https://pivpn.io/)
@@ -17,7 +17,7 @@
 [![Generic badge](https://img.shields.io/badge/status-page-blue.svg)](https://stats.uptimerobot.com/8X64yTjrJO)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
-PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) en un servidor VPN utilizando uno de los mejores protocolos gratuitos de código abierto:
+PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) en un servidor VPN utilizando uno o ambos de los protocolos gratuitos de código abierto:
 * [WireGuard](https://www.wireguard.com/)
 * [OpenVPN](https://openvpn.net)
 
