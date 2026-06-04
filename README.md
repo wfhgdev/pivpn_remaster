@@ -17,36 +17,36 @@
 [![Generic badge](https://img.shields.io/badge/status-page-blue.svg)](https://stats.uptimerobot.com/8X64yTjrJO)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
-PiVPN is a set of shell scripts developed to easily turn your Raspberry Pi (TM) into a VPN server using two free, open-source protocols:
+PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) en un servidor VPN utilizando uno de los mejores protocolos gratuitos de código abierto:
 * [WireGuard](https://www.wireguard.com/)
 * [OpenVPN](https://openvpn.net)
 
-This script's primary mission in life is to allow a user to have as cost-effective as possible VPN at home without being a technical wizard, hence the design of PiVPN to work on a Raspberry Pi ($35) with a one-command installer followed by easy management of the VPN with the 'pivpn' command.  
+La misión principal de este script es permitir que un usuario tenga una VPN lo más económica posible en casa sin necesidad de ser un experto en tecnología. Por eso, PiVPN está diseñado para funcionar en una Raspberry Pi (aprox $40 USD), un instalador de un solo comando y una gestión sencilla de la VPN con el comando 'pivpn'.
 
-That being said...
+Dicho esto...
 
-PiVPN should be, bar none, the simplest and fastest way to Install and set up an extremely secure **OpenVPN** or **WireGuard** server on your Raspberry Pi. You won't need a guide or tutorial as PiVPN will do it all for you in a fraction of the time with hardened security settings in place by default.  
+PiVPN es, sin duda, la forma más sencilla y rápida de instalar y configurar un servidor **OpenVPN** o **WireGuard** extremadamente seguro en tu Raspberry Pi. No necesitarás una guía ni un tutorial, ya que PiVPN lo hará todo por ti en mucho menos tiempo, con ajustes de seguridad reforzados por defecto.
 
-We recommend running PiVPN on the latest RaspberryPi OS Lite image in a Raspberry Pi at your home so you can VPN into your network from not secure remote locations and safely use the internet. However, you can also use PiVPN in any Cloud Provider VPS running Ubuntu or Debian to assist those with untrustworthy ISPs. Running a VPN on a server elsewhere means you can connect to the VPN from home, and because your traffic will be getting out from the cloud/VPS provider, your ISP will only see encrypted traffic. 
+Recomendamos ejecutar PiVPN en la última imagen de Raspberry Pi OS Lite en una Raspberry Pi en tu casa para poder conectarte a tu red VPN desde ubicaciones remotas no seguras y usar internet de forma segura. Sin embargo, también puedes usar PiVPN en cualquier VPS de un proveedor de servicios en la nube con Ubuntu o Debian para ayudar a quienes tienen proveedores de internet poco fiables. Al usar una VPN en un servidor externo, puedes conectarte desde casa y, dado que tu tráfico saldrá del proveedor de la nube/VPS, tu proveedor de internet solo verá tráfico cifrado.
 
-PiVPN should also work with most Ubuntu and Debian based distributions, including those using UFW by default instead of raw iptables.	
+PiVPN también debería funcionar con la mayoría de las distribuciones basadas en Ubuntu y Debian, incluidas aquellas que usan UFW (Uncomplicated Firewall) por defecto en lugar de IpTables.	
 
 ----
-## Installation
+## Instalación
 
-### Method 1 (standard)
+### Metodo 1 (Estandar)
 
 ```Shell
 curl -L https://install.pivpn.io | bash
 ```
 
-### Method 2 (direct link)
+### Metodo 2 (Enlace directo)
 
 ```Shell
 curl https://raw.githubusercontent.com/pivpn/pivpn/master/auto_install/install.sh | bash
 ```
 
-### Method 3 (clone repo)
+### Metodo 3 (clone repo)
 
 ```Shell
 git clone https://github.com/pivpn/pivpn.git
