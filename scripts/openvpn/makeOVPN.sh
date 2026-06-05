@@ -44,8 +44,7 @@ helpFunc() {
   echo "(default: \"$(hostname)\")"
   echo ":::  -p,--password        Contraseña para el cliente (no por defecto)"
   echo -n ":::  -d,--days            El certificado caduca después del número "
-  echo "de días especificado (predeterminado: 1080)
-  echo "number of days (default: 1080)"
+  echo "de días especificado (predeterminado: 1080)"
   echo ":::  -b,--bitwarden       Crea y guarda un cliente a través de Bitwarden"
   echo -n ":::  -i,--iOS             Genera un certificado compatible con iOS "
   echo "keychain"
