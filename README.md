@@ -35,7 +35,7 @@ PiVPN también debería funcionar con la mayoría de las distribuciones basadas 
 
 Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con las siguientes condiciones:
 
-*   **Equipos para el Servidor (donde instalas PiVPN):**
+*   **Equipo para el Servidor (donde instalas PiVPN):**
     *   Aunque fue creado originalmente para la gama de placas Raspberry Pi (modelos 1 al 5, Zero), el instalador funciona en cualquier servidor x86_64 o placa ARM que utilice sistemas operativos basados en Debian o Ubuntu. Cualquier Raspberry Pi, placas tipo SBC (Single Board Computer) con mínimo 1GB de RAM como OrangePi, Odroid, PineA64 o NanoPi, Mini PCs o servidores domésticos, Contenedores, Servidor Privado Virtual (VPS) en la nube o Maquina Virtual local (VirtualBox, VMware).
 *   **Sistema Operativo Compatible:** 
     *   Raspberry Pi OS (Lite o Desktop)
@@ -45,6 +45,7 @@ Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con l
 *   **Red Estable:** Una conexión a internet activa para descargar los paquetes necesarios.
 *   **IP Estática:** Se recomienda encarecidamente configurar una dirección IP local estática o reservada (reservada en DHCP) para tu servidor antes de empezar.
 *   **Puerto Abierto (Enrutador):** Necesitarás acceso a tu router para redirigir el puerto de la VPN (típicamente el puerto UDP `51820` para WireGuard o UDP `1194` para OpenVPN).
+*   **IP pública accesible:** Es ideal que tu enrutador tenga una IP Fija Publica. Si tu IP pública es dinamica (es de decir cambia seguido), necesitarás configurar un servicio de DNS Dinámico (DDNS) como [DuckDNS](https://www.duckdns.org) o No-IP, el cual PiVPN te permite integrar durante la instalación.
 
 ----
 ## :hammer_and_wrench: Instalación
