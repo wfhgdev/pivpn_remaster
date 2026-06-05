@@ -17,7 +17,7 @@
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
 PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) o PC en un servidor VPN utilizando ambos o uno de los siguientes protocolos VPN gratuitos de código abierto:
-* [WireGuard](https://www.wireguard.com/)
+* [WireGuard](https://www.wireguard.com)
 * [OpenVPN](https://openvpn.net)
 
 La misión principal de este script es permitir que un usuario tenga una VPN lo más económicamente posible en casa sin necesidad de ser un experto en tecnología. Por eso, PiVPN está diseñado para funcionar en una Raspberry Pi (aprox $35 USD), este script es un instalador de un solo comando que le permitirá una gestión sencilla de la VPN con el uso del comando 'pivpn'.
@@ -45,7 +45,7 @@ Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con l
 *   **Red Estable:** Una conexión a internet activa para descargar los paquetes necesarios.
 *   **IP Estática:** Se recomienda encarecidamente configurar una dirección IP local estática o reservada (reservada en DHCP) para tu servidor antes de empezar.
 *   **Puerto Abierto (Enrutador):** Necesitarás acceso a tu router para redirigir el puerto de la VPN (típicamente el puerto UDP `51820` para WireGuard o UDP `1194` para OpenVPN).
-*   **IP pública accesible:** Es ideal que tu enrutador tenga una IP Fija Publica. Si tu IP pública es dinamica (es de decir cambia seguido), necesitarás configurar un servicio de DNS Dinámico (DDNS) como [DuckDNS](https://www.duckdns.org) o No-IP, el cual PiVPN te permite integrar durante la instalación.
+*   **IP pública accesible:** Es ideal que tu enrutador tenga una IP Fija Publica. Si tu IP pública es dinámica (es de decir cambia seguido), necesitarás configurar un servicio de DNS Dinámico (DDNS) como [DuckDNS](https://www.duckdns.org) o [No-IP](https://www.noip.com), el cual PiVPN te permite integrar durante la instalación.
 
 ----
 ## :hammer_and_wrench: Instalación
