@@ -1,16 +1,16 @@
 #!/bin/bash
-# PiVPN: Uninstall Script
+# PiVPN: Script de Desinstalación
 
-### Constants
-# Find the rows and columns. Will default to 80x24 if it can not be detected.
+### Constantes
+# Encuentra las filas y columnas. Por defecto será 80x24 si no se puede detectar.
 screen_size="$(stty size 2> /dev/null || echo 24 80)"
 rows="$(echo "${screen_size}" | awk '{print $1}')"
 columns="$(echo "${screen_size}" | awk '{print $2}')"
 
-# Divide by two so the dialogs take up half of the screen, which looks nice.
+# Dividir por dos para que los cuadros de diálogo ocupen la mitad de la pantalla, lo que se ve bien.
 r=$((rows / 2))
 c=$((columns / 2))
-# Unless the screen is tiny
+# A menos que la pantalla sea minúscula
 r=$((r < 20 ? 20 : r))
 c=$((c < 70 ? 70 : c))
 
@@ -26,12 +26,12 @@ PLAT="$(grep -sEe '^NAME\=' /etc/os-release \
   | sed -E -e "s/NAME\=[\'\"]?([^ ]*).*/\1/")"
 UPDATE_PKG_CACHE="${PKG_MANAGER} update"
 
-### Functions
+### Funciones
 err() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
 }
 
-### FIXME: introduce global lib
+### FIXME: introducir biblioteca global
 spinner() {
   local pid="${1}"
   local delay=0.50
@@ -49,8 +49,8 @@ spinner() {
 }
 
 removeAll() {
-  # Stopping and disabling services
-  echo "::: Stopping and disabling services..."
+  # Deteniendo y deshabilitando servicios
+  echo "::: Deteniendo y deshabilitando servicios..."
 
   if [[ "${PLAT}" == 'Alpine' ]]; then
     if [[ "${VPN}" == "wireguard" ]]; then
@@ -70,14 +70,14 @@ removeAll() {
     fi
   fi
 
-  # Removing firewall rules.
-  echo "::: Removing firewall rules..."
+  # Eliminando reglas del cortafuegos.
+  echo "::: Eliminando reglas del cortafuegos..."
 
   if [[ "${USING_UFW}" -eq 1 ]]; then
-    ### Ignoring SC2154, value sourced from setupVars file
+    ### Ignorando SC2154, valor obtenido del archivo setupVars
     # shellcheck disable=SC2154
     ufw delete allow "${pivpnPORT}/${pivpnPROTO}" > /dev/null
-    ### Ignoring SC2154, value sourced from setupVars file
+    ### Ignorando SC2154, valor obtenido del archivo setupVars
     # shellcheck disable=SC2154
     ufw route delete allow in on "${pivpnDEV}" \
       from "${pivpnNET}/${subnetClass}" out on "${IPv4dev}" to any > /dev/null
@@ -149,18 +149,18 @@ removeAll() {
     iptables-save > /etc/iptables/rules.v4
   fi
 
-  # Disable IPv4 forwarding
+  # Deshabilitar el reenvío IPv4
   if [[ "${vpnStillExists}" -eq 0 ]]; then
     rm -f /etc/sysctl.d/99-pivpn.conf
     sysctl -p
   fi
 
-  # Purge dependencies
-  echo "::: Purge dependencies..."
+  # Purgar dependencias
+  echo "::: Purgando dependencias..."
 
   for i in "${INSTALLED_PACKAGES[@]}"; do
     while true; do
-      read -rp "::: Do you wish to remove ${i} from your system? [y/n]: " yn
+      read -rp "::: ¿Deseas eliminar ${i} de tu sistema? [y/n]: " yn
 
       case "${yn}" in
         [Yy]*)
@@ -171,17 +171,17 @@ removeAll() {
             fi
           else
             if [[ "${i}" == "wireguard-tools" ]]; then
-              # The bullseye repo may not exist if wireguard was available at
-              # the time of installation.
+              # El repositorio bullseye puede no existir si wireguard estaba disponible en
+              # el momento de la instalación.
               tmp_path='/etc/apt/sources.list.d/pivpn-bullseye-repo.list'
 
               if [[ -f "${tmp_path}" ]]; then
-                echo "::: Removing Debian Bullseye repo..."
+                echo "::: Eliminando el repositorio de Debian Bullseye..."
 
                 rm -f "${tmp_path}"
                 rm -f /etc/apt/preferences.d/pivpn-limit-bullseye
 
-                echo "::: Updating package cache..."
+                echo "::: Actualizando la caché de paquetes..."
 
                 ${UPDATE_PKG_CACHE} &> /dev/null &
                 spinner "$!"
@@ -199,11 +199,11 @@ removeAll() {
               rm -rf /etc/apt/apt.conf.d/*unattended-upgrades
             elif [[ "${i}" == "openvpn" ]]; then
               if [[ -f /etc/apt/sources.list.d/pivpn-openvpn-repo.list ]]; then
-                echo "::: Removing OpenVPN software repo..."
+                echo "::: Eliminando el repositorio de software de OpenVPN..."
 
                 rm -f /etc/apt/sources.list.d/pivpn-openvpn-repo.list
 
-                echo "::: Updating package cache..."
+                echo "::: Actualizando la caché de paquetes..."
 
                 ${UPDATE_PKG_CACHE} &> /dev/null &
                 spinner "$!"
@@ -214,39 +214,39 @@ removeAll() {
             fi
           fi
 
-          printf ":::\\tRemoving %s..." "${i}"
+          printf ":::\\tEliminando %s..." "${i}"
 
           ${PKG_REMOVE} "${i}" &> /dev/null &
           spinner "$!"
 
-          printf "done!\\n"
+          printf "¡hecho!\\n"
           break
           ;;
         [Nn]*)
-          printf ":::\\tSkipping %s\\n" "${i}"
+          printf ":::\\tOmitiendo %s\\n" "${i}"
           break
           ;;
         *)
-          err "::: You must answer yes or no!"
+          err "::: ¡Debes responder sí o no!"
           ;;
       esac
     done
   done
 
   if [[ "${PLAT}" != 'Alpine' ]]; then
-    # Take care of any additional package cleaning
-    printf "::: Auto removing remaining dependencies..."
+    # Encargarse de cualquier limpieza de paquetes adicional
+    printf "::: Auto eliminando las dependencias restantes..."
 
     "${PKG_MANAGER}" -y autoremove &> /dev/null &
     spinner "$!"
 
-    printf "done!\\n"
-    printf "::: Auto cleaning remaining dependencies..."
+    printf "¡hecho!\\n"
+    printf "::: Auto limpiando las dependencias restantes..."
 
     "${PKG_MANAGER}" -y autoclean &> /dev/null &
     spinner "$!"
 
-    printf "done!\\n"
+    printf "¡hecho!\\n"
   fi
 
   if [[ -f "${dnsmasqConfig}" ]]; then
@@ -254,7 +254,7 @@ removeAll() {
     # shellcheck disable=SC1090
     CORE_VERSION="$(source "$piholeVersions" && echo "${CORE_VERSION}")"
     if [ "$(echo -e 'v6.0.0\n'"${CORE_VERSION}" | sort -V | head -n 1)" = "v6.0.0" ]; then
-      # Running Pi-hole v6 or later
+      # Ejecutando Pi-hole v6 o posterior
       pihole reloaddns
     else
       pihole restartdns reload
@@ -262,13 +262,13 @@ removeAll() {
   fi
 
   echo ":::"
-  echo "::: Removing VPN configuration files..."
+  echo "::: Eliminando los archivos de configuración de la VPN..."
 
   if [[ "${VPN}" == "wireguard" ]]; then
     rm -f /etc/wireguard/wg0.conf
     rm -rf /etc/wireguard/configs
     rm -rf /etc/wireguard/keys
-    ### Ignoring SC2154, value sourced from setupVars file
+    ### Ignorando SC2154, valor obtenido del archivo setupVars
     # shellcheck disable=SC2154
     rm -rf "${install_home}/configs"
   elif [[ "${VPN}" == "openvpn" ]]; then
@@ -282,7 +282,7 @@ removeAll() {
 
   if [[ "${vpnStillExists}" -eq 0 ]]; then
     echo ":::"
-    echo "::: Removing pivpn system files..."
+    echo "::: Eliminando los archivos de sistema de pivpn..."
 
     rm -rf "${setupConfigDir}"
     rm -rf "${pivpnFilesDir}"
@@ -299,11 +299,11 @@ removeAll() {
     fi
 
     echo ":::"
-    echo "::: Other VPN ${othervpn} still present, so not"
-    echo "::: removing pivpn system files"
+    echo "::: Otra VPN ${othervpn} todavía está presente, por lo que no se"
+    echo "::: eliminan los archivos de sistema de pivpn"
     rm -f "${setupConfigDir}/${VPN}/${setupVarsFile}"
 
-    # Restore single pivpn script and bash completion for the remaining VPN
+    # Restaurar el script único de pivpn y el autocompletado de bash para la VPN restante
     ${SUDO} unlink /usr/local/bin/pivpn
 
     ${SUDO} ln \
@@ -319,22 +319,22 @@ removeAll() {
   fi
 
   echo ":::"
-  printf "::: Finished removing PiVPN from your system.\\n"
-  printf "::: Reinstall by simply running\\n:::\\n:::\\t"
+  printf "::: Se terminó de eliminar PiVPN de tu sistema.\\n"
+  printf "::: Reinstala simplemente ejecutando\\n:::\\n:::\\t"
   printf "curl -L https://install.pivpn.io | "
-  printf "bash\\n:::\\n::: at any time!\\n:::\\n"
+  printf "bash\\n:::\\n::: ¡en cualquier momento!\\n:::\\n"
 }
 
 askreboot() {
-  printf "It is \\e[1mstrongly\\e[0m recommended to reboot "
-  printf "after un-installation.\\n"
+  printf "\\e[1mSe recomienda encarecidamente\\e[0m reiniciar "
+  printf "después de la desinstalación.\\n"
 
-  read -p "Would you like to reboot now? [y/N]: " -n 1 -r
+  read -p "¿Te gustaría reiniciar ahora? [y/N]: " -n 1 -r
 
   echo
 
   if [[ "${REPLY}" =~ ^[Yy]$ ]]; then
-    printf "\\nRebooting system...\\n"
+    printf "\\nReiniciando el sistema...\\n"
     sleep 3
     reboot
   fi
@@ -350,28 +350,28 @@ if [[ -r "${setupConfigDir}/wireguard/${setupVarsFile}" ]] \
   && [[ -r "${setupConfigDir}/openvpn/${setupVarsFile}" ]]; then
   vpnStillExists=1
 
-  # Two protocols have been installed, check if the script has passed
-  # an argument, otherwise ask the user which one he wants to remove
+  # Se han instalado dos protocolos, comprobar si el script ha pasado
+  # un argumento, de lo contrario preguntar al usuario cuál quiere eliminar
   if [[ "$#" -ge 1 ]]; then
     VPN="${1}"
-    echo "::: Uninstalling VPN: ${VPN}"
+    echo "::: Desinstalando VPN: ${VPN}"
   else
     chooseVPNCmd=(whiptail
-      --backtitle "Setup PiVPN"
-      --title "Uninstall"
+      --backtitle "Configuración de PiVPN"
+      --title "Desinstalar"
       --separate-output
-      --radiolist "Both OpenVPN and WireGuard are installed, \
-choose a VPN to uninstall (press space to select):"
+      --radiolist "Tanto OpenVPN como WireGuard están instalados, \
+elige una VPN para desinstalar (presiona espacio para seleccionar):"
       "${r}" "${c}" 2)
     VPNChooseOptions=(WireGuard "" on
       OpenVPN "" off)
 
     if VPN="$("${chooseVPNCmd[@]}" "${VPNChooseOptions[@]}" 2>&1 \
       > /dev/tty)"; then
-      echo "::: Uninstalling VPN: ${VPN}"
+      echo "::: Desinstalando VPN: ${VPN}"
       VPN="${VPN,,}"
     else
-      err "::: Cancel selected, exiting...."
+      err "::: Cancelar seleccionado, saliendo...."
       exit 1
     fi
   fi
@@ -388,21 +388,21 @@ else
 fi
 
 if [[ ! -f "${setupVars}" ]]; then
-  err "::: Missing setup vars file!"
+  err "::: ¡Falta el archivo de variables de configuración!"
   exit 1
 fi
 
 # shellcheck disable=SC1090
 source "${setupVars}"
 
-echo -n "::: Preparing to remove packages, be sure that each may be safely "
-echo "removed depending on your operating system."
-echo "::: (SAFE TO REMOVE ALL ON RASPBIAN)"
+echo -n "::: Preparando para eliminar paquetes, asegúrate de que cada uno se pueda eliminar de forma segura "
+echo "dependiendo de tu sistema operativo."
+echo "::: (ES SEGURO ELIMINAR TODOS EN RASPBIAN)"
 
 while true; do
-  echo -n "::: Do you wish to completely remove PiVPN configuration and "
-  echo -n "installed packages from your system? "
-  echo -n "(You will be prompted for each package) [y/n]: "
+  echo -n "::: ¿Deseas eliminar completamente la configuración de PiVPN y "
+  echo -n "los paquetes instalados de tu sistema? "
+  echo -n "(Se te preguntará por cada paquete) [y/n]: "
   read -r yn
 
   case "${yn}" in
@@ -412,7 +412,7 @@ while true; do
       break
       ;;
     [Nn]*)
-      err "::: Not removing anything, exiting..."
+      err "::: No se eliminará nada, saliendo..."
       break
       ;;
   esac
