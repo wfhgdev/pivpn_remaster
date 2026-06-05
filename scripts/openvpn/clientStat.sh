@@ -8,14 +8,14 @@ err() {
 }
 
 scriptusage() {
-  echo "::: List any connected clients to the server"
+  echo "::: Para pasar al comando pivpn para cada protocolo"
   echo ":::"
-  echo "::: Usage: pivpn <-c|clients> [-b|bytes]"
+  echo "::: Uso: pivpn <-c|clients> [-b|bytes]"
   echo ":::"
-  echo "::: Commands:"
-  echo ":::  [none]              List clients with human readable format"
-  echo ":::  -b, bytes           List clients with dotted decimal notation"
-  echo ":::  -h, help            Show this usage dialog"
+  echo "::: Comandos:"
+  echo ":::  [none]              Lista los clientes en formato legible"
+  echo ":::  -b, bytes           Lista los clientes en notación decimal con puntos"
+  echo ":::  -h, help            Muestra este cuadro de diálogo de uso"
 }
 
 hr() {
