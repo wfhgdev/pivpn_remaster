@@ -8,14 +8,14 @@ err() {
 }
 
 scriptusage() {
-  echo "::: Lista los clientes conectados al servidor"
+  echo "::: Lista cualquier cliente conectado al servidor VPN"
   echo ":::"
   echo "::: Uso: pivpn <-c|clients> [-b|bytes]"
   echo ":::"
   echo "::: Comandos:"
-  echo ":::  [ninguno]              Lista los clientes en formato legible"
-  echo ":::  -b, bytes           Lista los clientes en notación decimal con puntos"
-  echo ":::  -h, help            Muestra este cuadro de diálogo de uso"
+  echo ":::  [ninguno]           Lista clientes con formato legible para humanos"
+  echo ":::  -b, bytes           Lista clientes con notación decimal"
+  echo ":::  -h, help            Muestra este diálogo de uso"
 }
 
 hr() {
