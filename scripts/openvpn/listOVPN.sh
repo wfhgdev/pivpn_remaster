@@ -40,13 +40,13 @@ printf "\\e[1m::: Certificate Status List :::\\e[0m\\n"
       | date +"%b %d %Y" -f -)"
 
     if [[ "${STATUS}" == "V" ]]; then
-      printf "Valid"
+      printf "Válido"
     elif [[ "${STATUS}" == "R" ]]; then
-      printf "Revoked"
+      printf "Revocado"
     elif [[ "${STATUS}" == "E" ]]; then
-      printf "Expired"
+      printf "Expirado"
     else
-      printf "Unknown"
+      printf "Desconocido"
     fi
 
     printf "  \t  %s  \t  %s\\n" "$(echo -e "${NAME}")" "${EXPD}"
