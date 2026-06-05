@@ -31,30 +31,30 @@ err() {
 }
 
 helpFunc() {
-  echo "::: Create a client ovpn profile, optional nopass"
+  echo "::: Crear un perfil ovpn de cliente, nopass opcional"
   echo ":::"
   echo -n "::: Uso: pivpn <-a|add> [-n|--name <arg>] "
-  echo -n "[-p|--password <arg>]|[nopass] [-d|--days <number>] "
+  echo -n "[-p|--password <arg>]|[nopass] [-d|--days <numero>] "
   echo "[-b|--bitwarden] [-i|--iOS] [-o|--ovpn] [-h|--help]"
   echo ":::"
   echo "::: Comandos:"
-  echo ":::  [ninguno]               Modo interactivo"
+  echo ":::  [ninguno]            Modo interactivo"
   echo ":::  nopass               Crear un cliente sin contraseña"
-  echo -n ":::  -n,--name            Nombre para el cliente "
-  echo "(default: \"$(hostname)\")"
-  echo ":::  -p,--password        Contraseña para el cliente (no por defecto)"
-  echo -n ":::  -d,--days            El certificado caduca después del número "
-  echo "de días especificado (predeterminado: 1080)"
-  echo ":::  -b,--bitwarden       Crea y guarda un cliente a través de Bitwarden"
-  echo -n ":::  -i,--iOS             Genera un certificado compatible con iOS "
-  echo "keychain"
-  echo -n ":::  -o,--ovpn            Regenera un archivo de configuración .ovpn para un "
+  echo -n ":::  -n,--name            Nombre para el Cliente "
+  echo "(por defecto: \"$(hostname)\")"
+  echo ":::  -p,--password        Contraseña para el Cliente (sin valor por defecto)"
+  echo -n ":::  -d,--days            Expirar el certificado después del número "
+  echo "especificado de días (por defecto: 1080)"
+  echo ":::  -b,--bitwarden       Crear y guardar un cliente a través de Bitwarden"
+  echo -n ":::  -i,--iOS             Generar un certificado que aprovecha el "
+  echo "llavero de iOS"
+  echo -n ":::  -o,--ovpn            Regenerar un archivo de configuración .ovpn para un "
   echo "cliente existente"
-  echo ":::  -h,--help            Muestra este diálogo de uso"
+  echo ":::  -h,--help            Mostrar este diálogo de ayuda"
 }
 
 checkName() {
-  # check name
+  # comprobar nombre
   if [[ "${NAME}" =~ [^a-zA-Z0-9.@_-] ]]; then
     err "El nombre solo puede contener caracteres alfanuméricos y estos símbolos (.-@_)."
     exit 1
@@ -65,10 +65,10 @@ checkName() {
     err "Los nombres no pueden contener espacios."
     exit 1
   elif [[ "${NAME:0:1}" == "-" ]]; then
-    err "El nombre no puede comenzar con - (guion)"
+    err "El nombre no puede empezar con - (guion)"
     exit 1
   elif [[ "${NAME::1}" == "." ]]; then
-    err "Los nombres no pueden comenzar con un punto (.)"
+    err "Los nombres no pueden empezar con un . (punto)."
     exit 1
   elif [[ -z "${NAME}" ]]; then
     err "::: No puedes dejar el nombre en blanco."
@@ -77,48 +77,48 @@ checkName() {
 }
 
 keynoPASS() {
-  # Build the client key
+  # Construir la clave del cliente
   export EASYRSA_CERT_EXPIRE="${DAYS}"
   ./easyrsa --batch build-client-full "${NAME}" nopass
   cd pki || exit
 }
 
 useBitwarden() {
-  # login and unlock vault
-  printf "****Bitwarden Login****"
+  # iniciar sesión y desbloquear la bóveda
+  printf "****Inicio de sesión en Bitwarden****"
   printf "\n"
 
   SESSION_KEY="$(bw login --raw)"
   export BW_SESSION="${SESSION_KEY}"
 
-  printf "Successfully Logged in!"
+  printf "¡Inicio de sesión exitoso!"
   printf "\n"
 
-  # ask user for username
-  printf "Enter the username:  "
+  # pedir al usuario el nombre de usuario
+  printf "Introduce el nombre de usuario:  "
   read -r NAME
 
-  #check name
+  # comprobar nombre
   checkName
 
-  # ask user for length of password
-  printf "Please enter the length of characters you want your password to be "
-  printf "(minimum 12): "
+  # pedir al usuario la longitud de la contraseña
+  printf "Por favor, introduce la longitud de caracteres que deseas para tu contraseña "
+  printf "(mínimo 12): "
   read -r LENGTH
 
-  # check length
+  # comprobar longitud
   until [[ "${LENGTH}" -gt 11 ]] && [[ "${LENGTH}" -lt 129 ]]; do
-    echo "Password must be between from 12 to 128 characters, please try again."
-    # ask user for length of password
-    printf "Please enter the length of characters you want your password to be "
-    printf "(minimum 12): "
+    echo "La contraseña debe tener entre 12 y 128 caracteres, por favor inténtalo de nuevo."
+    # pedir al usuario la longitud de la contraseña
+    printf "Por favor, introduce la longitud de caracteres que deseas para tu contraseña "
+    printf "(mínimo 12): "
     read -r LENGTH
   done
 
-  printf "Creating a PiVPN item for your vault..."
+  printf "Creando un elemento PiVPN para tu bóveda..."
   printf "\n"
 
-  # create a new item for your PiVPN Password
+  # crear un nuevo elemento para tu contraseña de PiVPN
   PASSWD="$(bw generate -usln --length "${LENGTH}")"
   bw get template item \
     | jq '.login.type = "1"' \
@@ -135,30 +135,30 @@ keyPASS() {
     stty -echo
 
     while true; do
-      printf "Enter the password for the client:  "
+      printf "Introduce la contraseña para el cliente:  "
       read -r PASSWD
       printf "\n"
-      printf "Enter the password again to verify:  "
+      printf "Introduce la contraseña de nuevo para verificar:  "
       read -r PASSWD2
       printf "\n"
 
       [[ "${PASSWD}" == "${PASSWD2}" ]] && break
 
-      printf "Passwords do not match! Please try again.\n"
+      printf "¡Las contraseñas no coinciden! Por favor, inténtalo de nuevo.\n"
     done
 
     stty echo
 
     if [[ -z "${PASSWD}" ]]; then
-      err "You left the password blank"
-      err "If you don't want a password, please run:"
+      err "Dejaste la contraseña en blanco"
+      err "Si no quieres una contraseña, por favor ejecuta:"
       err "pivpn add nopass"
       exit 1
     fi
   fi
 
   if [[ "${#PASSWD}" -lt 4 ]] || [[ "${#PASSWD}" -gt 1024 ]]; then
-    err "Password must be between from 4 to 1024 characters"
+    err "La contraseña debe tener entre 4 y 1024 caracteres"
     exit 1
   fi
 
@@ -172,7 +172,7 @@ keyPASS() {
 
 ### Script
 if [[ ! -f "${setupVars}" ]]; then
-  err "::: Missing setup vars file!"
+  err "::: ¡Falta el archivo de variables de configuración!"
   exit 1
 fi
 
@@ -182,7 +182,7 @@ if [[ -z "${HELP_SHOWN}" ]]; then
   echo "HELP_SHOWN=1" >> "${setupVars}"
 fi
 
-# Parse input arguments
+# Analizar argumentos de entrada
 while [[ "$#" -gt 0 ]]; do
   _key="${1}"
 
@@ -192,7 +192,7 @@ while [[ "$#" -gt 0 ]]; do
 
       if [[ "${_val}" == "${_key}" ]]; then
         [[ "$#" -lt 2 ]] \
-          && err "Missing value for the optional argument '${_key}'." \
+          && err "Falta el valor para el argumento opcional '${_key}'." \
           && exit 1
 
         _val="${2}"
@@ -207,7 +207,7 @@ while [[ "$#" -gt 0 ]]; do
 
       if [[ "${_val}" == "${_key}" ]]; then
         [[ "$#" -lt 2 ]] \
-          && err "Missing value for the optional argument '${_key}'." \
+          && err "Falta el valor para el argumento opcional '${_key}'." \
           && exit 1
 
         _val="${2}"
@@ -221,7 +221,7 @@ while [[ "$#" -gt 0 ]]; do
 
       if [[ "${_val}" == "${_key}" ]]; then
         [[ "$#" -lt 2 ]] \
-          && err "Missing value for the optional argument '${_key}'." \
+          && err "Falta el valor para el argumento opcional '${_key}'." \
           && exit 1
 
         _val="${2}"
@@ -234,8 +234,8 @@ while [[ "$#" -gt 0 ]]; do
       if [[ "${TWO_POINT_FIVE}" -ne 1 ]]; then
         iOS=1
       else
-        err "Sorry, can't generate iOS-specific configs for ECDSA certificates"
-        err "Generate traditional certificates using 'pivpn -a' or reinstall PiVPN without opting in for OpenVPN 2.4 features"
+        err "Lo siento, no se pueden generar configuraciones específicas de iOS para certificados ECDSA"
+        err "Genera certificados tradicionales usando 'pivpn -a' o reinstala PiVPN sin optar por las características de OpenVPN 2.4"
         exit 1
       fi
       ;;
@@ -250,10 +250,10 @@ while [[ "$#" -gt 0 ]]; do
       if command -v bw > /dev/null; then
         BITWARDEN="2"
       else
-        echo 'Bitwarden not found, please install bitwarden'
+        echo 'Bitwarden no encontrado, por favor instala bitwarden'
 
         if [[ "${PLAT}" == 'Alpine' ]]; then
-          echo 'You can download it through the following commands:'
+          echo 'Puedes descargarlo mediante los siguientes comandos:'
           echo -n $'\t''curl -fLo bitwarden.zip --no-cache https://github.com/'
           echo -n 'bitwarden/clients/releases/download/cli-v2022.6.2/'
           echo 'bw-linux-2022.6.2.zip'
@@ -273,7 +273,7 @@ while [[ "$#" -gt 0 ]]; do
       GENOVPNONLY=1
       ;;
     *)
-      err "Error: Got an unexpected argument '${1}'"
+      err "Error: Se obtuvo un argumento inesperado '${1}'"
       helpFunc
       exit 1
       ;;
@@ -282,8 +282,8 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-#make sure ovpns dir exists
-# Disabling warning for SC2154, var sourced externaly
+# asegurarse de que el directorio ovpns exista
+# Deshabilitando advertencia para SC2154, variable obtenida externamente
 # shellcheck disable=SC2154
 if [[ ! -d "${install_home}/ovpns" ]]; then
   mkdir "${install_home}/ovpns"
@@ -291,7 +291,7 @@ if [[ ! -d "${install_home}/ovpns" ]]; then
   chmod 0750 "${install_home}/ovpns"
 fi
 
-# Exclude first, last and server addresses
+# Excluir la primera, última y las direcciones del servidor
 # shellcheck disable=SC2154
 MAX_CLIENTS="$((2 ** (32 - subnetClass) - 3))"
 
@@ -300,16 +300,16 @@ FIRST_IPV4_DEC="$(dotIPv4FirstDec "${pivpnNET}" "${subnetClass}")"
 LAST_IPV4_DEC="$(dotIPv4LastDec "${pivpnNET}" "${subnetClass}")"
 
 if [ "$(find /etc/openvpn/ccd -type f | wc -l)" -ge "${MAX_CLIENTS}" ]; then
-  echo "::: Can't add any more clients (max. ${MAX_CLIENTS})!"
+  echo "::: ¡No se pueden añadir más clientes (máx. ${MAX_CLIENTS})!"
   exit 1
 fi
 
-# Find an unused address for the client IP
+# Encontrar una dirección no utilizada para la IP del cliente
 for ((ip = FIRST_IPV4_DEC + 2; ip <= LAST_IPV4_DEC - 1; ip++)); do
-  # find returns 0 if the folder is empty, so we create the 'ls -A [...]'
-  # exception to stop at the first static IP (10.8.0.2). Otherwise it would
-  # cycle to the end without finding and available octet.
-  # disabling SC2514, variable sourced externaly
+  # find devuelve 0 si la carpeta está vacía, así que creamos la excepción 'ls -A [...]'
+  # para detenernos en la primera IP estática (10.8.0.2). De lo contrario, circularía
+  # hasta el final sin encontrar un octeto disponible.
+  # deshabilitando SC2514, variable obtenida externamente
   ip_dot="$(decIPv4ToDot "${ip}")"
 
   if [[ -z "$(ls -A /etc/openvpn/ccd)" ]] \
@@ -326,7 +326,7 @@ if [[ "${BITWARDEN}" =~ "2" ]]; then
 fi
 
 if [[ -z "${NAME}" ]]; then
-  printf "Enter a Name for the Client:  "
+  printf "Introduce un Nombre para el Cliente:  "
   read -r NAME
   checkName
 else
@@ -334,16 +334,16 @@ else
 fi
 
 if [[ "${GENOVPNONLY}" == 1 ]]; then
-  # Generate .ovpn configuration file
+  # Generar archivo de configuración .ovpn
   cd /etc/openvpn/easy-rsa/pki || exit
 else
-  # Check if name is already in use
+  # Comprobar si el nombre ya está en uso
   while read -r line || [[ -n "${line}" ]]; do
     STATUS=$(echo "${line}" | awk '{print $1}')
 
     if [[ "${STATUS}" == "V" ]]; then
-      # Disabling SC2001 as ${variable//search/replace}
-      # doesn't go well with regexp
+      # Deshabilitando SC2001 ya que ${variable//search/replace}
+      # no va bien con expresiones regulares
       # shellcheck disable=SC2001
       CERT="$(echo "${line}" | sed -e 's:.*/CN=::')"
 
@@ -355,29 +355,29 @@ else
   done < "${INDEX}"
 
   if [[ "${INUSE}" == 1 ]]; then
-    err "!! This name is already in use by a Valid Certificate."
-    err "Please choose another name or revoke this certificate first."
+    err "!! Este nombre ya está en uso por un Certificado Válido."
+    err "Por favor, elige otro nombre o revoca este certificado primero."
     exit 1
-  # Check if name is reserved
+  # Comprobar si el nombre está reservado
   elif [[ "${NAME}" == "ta" ]] \
     || [[ "${NAME}" == "server" ]] \
     || [[ "${NAME}" == "ca" ]]; then
-    err "Sorry, this is in use by the server and cannot be used by clients."
+    err "Lo siento, esto está en uso por el servidor y no puede ser utilizado por clientes."
     exit 1
   fi
 
-  # As of EasyRSA 3.0.6, by default certificates last 1080 days,
-  # see https://github.com/OpenVPN/easy-rsa/blob/6b7b6bf1f0d3c9362b5618ad18c66677351cacd1/easyrsa3/vars.example
+  # A partir de EasyRSA 3.0.6, por defecto los certificados duran 1080 días,
+  # ver https://github.com/OpenVPN/easy-rsa/blob/6b7b6bf1f0d3c9362b5618ad18c66677351cacd1/easyrsa3/vars.example
   if [[ -z "${DAYS}" ]]; then
-    read -r -e -p "How many days should the certificate last?  " -i 1080 DAYS
+    read -r -e -p "¿Cuántos días debería durar el certificado?  " -i 1080 DAYS
   fi
 
   if [[ ! "${DAYS}" =~ ^[0-9]+$ ]] \
     || [[ "${DAYS}" -lt 1 ]] \
     || [[ "${DAYS}" -gt 3650 ]]; then
-    # The CRL lasts 3650 days so it doesn't make much sense
-    # that certificates would last longer
-    err "Please input a valid number of days, between 1 and 3650 inclusive."
+    # El CRL dura 3650 días por lo que no tiene mucho sentido
+    # que los certificados duren más
+    err "Por favor introduce un número válido de días, entre 1 y 3650 inclusive."
     exit 1
   fi
 
@@ -385,7 +385,7 @@ else
 
   if [[ "${NO_PASS}" =~ "1" ]]; then
     if [[ -n "${PASSWD}" ]]; then
-      err "Both nopass and password arguments passed to the script. Please use either one."
+      err "Ambos argumentos, nopass y contraseña, se han pasado al script. Por favor, usa solo uno."
       exit 1
     else
       keynoPASS
@@ -395,74 +395,74 @@ else
   fi
 fi
 
-#1st Verify that clients Public Key Exists
+# 1ro Verificar que exista la Clave Pública del cliente
 if [[ ! -f "issued/${NAME}${CRT}" ]]; then
-  err "[ERROR]: Client Public Key Certificate not found: ${NAME}${CRT}"
+  err "[ERROR]: No se encontró el Certificado de Clave Pública del Cliente: ${NAME}${CRT}"
   exit
 fi
 
-echo "Client's cert found: ${NAME}${CRT}"
+echo "Certificado del cliente encontrado: ${NAME}${CRT}"
 
-#Then, verify that there is a private key for that client
+# Luego, verificar que haya una clave privada para ese cliente
 if [[ ! -f "private/${NAME}${KEY}" ]]; then
-  err "[ERROR]: Client Private Key not found: ${NAME}${KEY}"
+  err "[ERROR]: No se encontró la Clave Privada del Cliente: ${NAME}${KEY}"
   exit
 fi
 
-echo "Client's Private Key found: ${NAME}${KEY}"
+echo "Clave Privada del Cliente encontrada: ${NAME}${KEY}"
 
-#Confirm the CA public key exists
+# Confirmar que la clave pública CA existe
 if [[ ! -f "${CA}" ]]; then
-  err "[ERROR]: CA Public Key not found: ${CA}"
+  err "[ERROR]: No se encontró la Clave Pública de la CA: ${CA}"
   exit
 fi
 
-echo "CA public Key found: ${CA}"
+echo "Clave Pública de la CA encontrada: ${CA}"
 
 if [[ "${TWO_POINT_FIVE}" -eq 1 ]]; then
-  # Confirm the tls-crypt-v2 key file exists
+  # Confirmar que el archivo de clave tls-crypt-v2 existe
   if [[ ! -f "${TC_V2}" ]]; then
-    err "[ERROR]: TLS crypt server key not found: ${TC_V2}"
+    err "[ERROR]: No se encontró la clave de servidor TLS crypt: ${TC_V2}"
     exit
   fi
 
-  echo "TLS crypt server key found: ${TC_V2}"
+  echo "Clave de servidor TLS crypt encontrada: ${TC_V2}"
 
-  # Generate and save a random 128-bit ID to embed into the tls-crypt key
-  # to reject revoked clients at the tls-crypt level
+  # Generar y guardar un ID aleatorio de 128 bits para incrustar en la clave tls-crypt
+  # para rechazar clientes revocados a nivel de tls-crypt
   metadata="$(LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 22)"
   base64_metadata="$(echo -n "${metadata}" | base64 -w 0)"
   echo "${NAME} ${metadata}" >> "${TC_V2_METADATA}"
 
-  # Generate client-specific tls-crypt-v2 key based on the server one
+  # Generar clave tls-crypt-v2 específica del cliente basada en la del servidor
   openvpn --tls-crypt-v2 "${TC_V2}" --genkey tls-crypt-v2-client "tc-v2/${NAME}.key" "${base64_metadata}"
 else
-  # Confirm the tls-auth key file exists
+  # Confirmar que el archivo de clave tls-auth existe
   if [[ ! -f "${TA}" ]]; then
-    err "[ERROR]: TLS auth key not found: ${TA}"
+    err "[ERROR]: No se encontró la clave TLS auth: ${TA}"
     exit
   fi
 
-  echo "TLS auth key found: ${TA}"
+  echo "Clave TLS auth encontrada: ${TA}"
 fi
 
-## Added new step to create an .ovpn12 file that can be stored on iOS keychain
-## This step is more secure method and does not require the end-user to keep
-## entering passwords, or storing the client private cert where it can be easily
-## tampered
+## Se añadió un nuevo paso para crear un archivo .ovpn12 que se puede almacenar en el llavero de iOS
+## Este paso es un método más seguro y no requiere que el usuario final
+## introduzca contraseñas, o almacenar el certificado privado del cliente donde puede ser fácilmente
+## manipulado
 ## https://openvpn.net/faq/how-do-i-use-a-client-certificate-and-private-key-from-the-ios-keychain/
 
-# Generates the .ovpn file WITHOUT the client private key
+# Genera el archivo .ovpn SIN la clave privada del cliente
 {
-  # Start by populating with the default file
+  # Comenzar llenando con el archivo por defecto
   cat "${DEFAULT}"
 
-  # Now, append the CA Public Cert
+  # Ahora, adjuntar el Certificado Público de la CA
   echo "<ca>"
   cat "${CA}"
   echo "</ca>"
 
-  # Next append the client Public Cert
+  # A continuación, adjuntar el Certificado Público del cliente
   echo "<cert>"
   sed -n \
     -e '/-BEGIN CERTIFICATE-/,/-END CERTIFICATE-/p' \
@@ -470,13 +470,13 @@ fi
   echo "</cert>"
 
   if [[ "${iOS}" != 1 ]]; then
-    # Then, append the client Private Key
+    # Luego, adjuntar la Clave Privada del cliente
     echo "<key>"
     cat "private/${NAME}${KEY}"
     echo "</key>"
   fi
 
-  # Finally, append the tls Private Key
+  # Finalmente, adjuntar la Clave Privada tls
   if [[ "${iOS}" != 1 ]] && [[ "${TWO_POINT_FIVE}" -eq 1 ]]; then
     echo "<tls-crypt-v2>"
     cat "tc-v2/${NAME}.key"
@@ -489,11 +489,11 @@ fi
 } > "${NAME}${FILEEXT}"
 
 if [[ "${iOS}" == 1 ]]; then
-  # Copy the .ovpn profile to the home directory for convenient remote access
+  # Copiar el perfil .ovpn al directorio de inicio para un acceso remoto conveniente
   printf "========================================================\n"
-  printf "Generating an .ovpn12 file for use with iOS devices\n"
-  printf "Please remember the export password\n"
-  printf "as you will need this import the certificate on your iOS device\n"
+  printf "Generando un archivo .ovpn12 para uso con dispositivos iOS\n"
+  printf "Por favor, recuerda la contraseña de exportación\n"
+  printf "ya que la necesitarás para importar el certificado en tu dispositivo iOS\n"
   printf "========================================================\n"
 
   openssl pkcs12 \
@@ -509,16 +509,16 @@ if [[ "${iOS}" == 1 ]]; then
   chmod 640 "${install_home}/ovpns/${NAME}.ovpn12"
 
   printf "========================================================\n"
-  printf "\e[1mDone! %s successfully created!\e[0m \n" "${NAME}.ovpn12"
-  printf "You will need to transfer both the .ovpn and .ovpn12 files\n"
-  printf "to your iOS device.\n"
+  printf "\e[1m¡Hecho! ¡%s creado exitosamente!\e[0m \n" "${NAME}.ovpn12"
+  printf "Necesitarás transferir tanto el archivo .ovpn como el .ovpn12\n"
+  printf "a tu dispositivo iOS.\n"
   printf "========================================================\n\n"
 fi
 
 echo -n "ifconfig-push ${UNUSED_IPV4_DOT} " >> /etc/openvpn/ccd/"${NAME}"
-# The space after ${UNUSED_IPV4_DOT} is important!
+# ¡El espacio después de ${UNUSED_IPV4_DOT} es importante!
 cidrToMask "${subnetClass}" >> /etc/openvpn/ccd/"${NAME}"
-# the end resuld should be a line like:
+# el resultado final debería ser una línea como:
 # ifconfig-push ${UNUSED_IPV4_DOT} ${subnetClass}
 # ifconfig-push 10.205.45.8 255.255.255.0
 
@@ -526,13 +526,13 @@ if [[ -f /etc/pivpn/hosts.openvpn ]]; then
   echo "${UNUSED_IPV4_DOT} ${NAME}.pivpn" >> /etc/pivpn/hosts.openvpn
 
   if killall -SIGHUP pihole-FTL; then
-    echo "::: Updated hosts file for Pi-hole"
+    echo "::: Archivo hosts actualizado para Pi-hole"
   else
-    err "::: Failed to reload pihole-FTL configuration"
+    err "::: Falló al recargar la configuración de pihole-FTL"
   fi
 fi
 
-# Copy the .ovpn profile to the home directory for convenient remote access
+# Copiar el perfil .ovpn al directorio de inicio para un acceso remoto conveniente
 dest_path="${install_home}/ovpns/${NAME}${FILEEXT}"
 cp "/etc/openvpn/easy-rsa/pki/${NAME}${FILEEXT}" "${dest_path}"
 chown "${install_user}:${install_user}" "${dest_path}"
@@ -542,9 +542,9 @@ unset dest_path
 
 printf "\n\n"
 printf "========================================================\n"
-printf "\e[1mDone! %s successfully created!\e[0m \n" "${NAME}${FILEEXT}"
-printf "%s was copied to:\n" "${NAME}${FILEEXT}"
+printf "\e[1m¡Hecho! ¡%s creado exitosamente!\e[0m \n" "${NAME}${FILEEXT}"
+printf "%s fue copiado a:\n" "${NAME}${FILEEXT}"
 printf "  %s/ovpns\n" "${install_home}"
-printf "for easy transfer. Please use this profile only on one\n"
-printf "device and create additional profiles for other devices.\n"
+printf "para una fácil transferencia. Por favor, usa este perfil solo en un\n"
+printf "dispositivo y crea perfiles adicionales para otros dispositivos.\n"
 printf "========================================================\n\n"
