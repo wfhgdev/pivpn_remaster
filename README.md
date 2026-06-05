@@ -36,7 +36,7 @@ PiVPN también debería funcionar con la mayoría de las distribuciones basadas 
 Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con las siguientes condiciones:
 
 *   **Equipos para el Servidor (donde instalas PiVPN):**
-    *   Aunque fue creado originalmente para la gama de placas Raspberry Pi (modelos 1 al 5, Zero), el instalador funciona en cualquier servidor x86_64 o placa ARM que utilice sistemas operativos basados en Debian o Ubuntu. Cualquier Raspberry Pi, placas tipo SBC (Single Board Computer con minimo 1GB de RAM) como OrangePi, Odroid, PineA64 o NanoPi, Mini PCs o servidores domésticos, Contenedores o máquinas virtuales (VPS) en plataformas de nube o local (VirtualBox, VMware)
+    *   Aunque fue creado originalmente para la gama de placas Raspberry Pi (modelos 1 al 5, Zero), el instalador funciona en cualquier servidor x86_64 o placa ARM que utilice sistemas operativos basados en Debian o Ubuntu. Cualquier Raspberry Pi, placas tipo SBC (Single Board Computer) con mínimo 1GB de RAM como OrangePi, Odroid, PineA64 o NanoPi, Mini PCs o servidores domésticos, Contenedores, Servidor Privado Virtual (VPS) en la nube o Maquina Virtual local (VirtualBox, VMware).
 *   **Sistema Operativo Compatible:** 
     *   Raspberry Pi OS (Lite o Desktop)
     *   Ubuntu Server/Desktop (18.04 LTS o superior)
@@ -55,7 +55,7 @@ Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con l
 curl https://raw.githubusercontent.com/Masterwilledu/pivpn/master/auto_install/install.sh | bash
 ```
 
-### Metodo 2 (Clonación de repositorio)
+### :sheep: Metodo 2 (Clonación de repositorio)
 
 ```Shell
 git clone https://github.com/Masterwilledu/pivpn.git
