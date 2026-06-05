@@ -14,7 +14,7 @@ exit 0
 ### FIN DE LA SECCIÓN ###
 
 ### Constantes
-pivpnrepo="https://github.com/pivpn/pivpn.git"
+pivpnrepo="https://github.com/Masterwilledu/pivpn_spanish.git"
 pivpnlocalpath="/etc/.pivpn"
 pivpnscripts="/opt/pivpn/"
 bashcompletiondir="/etc/bash_completion.d/"
