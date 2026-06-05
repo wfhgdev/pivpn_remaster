@@ -1,7 +1,7 @@
 > [PiVPN Spanish]
 > 
-> ¡Bienvenido a este fork (o bifurcación) de **PiVPN**! Este proyecto es una traducción completa al español del script de instalación de PiVPN en Bash.
-:colombia: / :es:
+> ¡Bienvenido a este fork (o bifurcación) de **PiVPN**! Este proyecto es una traducción completa al español del script de instalación de PiVPN del repositorio oficial, se traducen todos los comentarios, mensajes de error, cuadros de diálogo y salidas de consola, manteniendo intacta la lógica y las variables del código original.
+
 ![Pivpn Banner](pivpnbanner.png)
 
 ![Logos](logos.jpg)
