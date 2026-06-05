@@ -36,8 +36,8 @@ decIPv4ToHex() {
   hex="$(printf "%08x\n" "$1")"
   quartet_hi=${hex:0:4}
   quartet_lo=${hex:4:4}
-  # Removes leading zeros from quartets, purely for aesthetic reasons
-  # Source: https://stackoverflow.com/a/19861690
+  # Elimina los ceros iniciales de los cuartetos, por razones puramente estéticas.
+  # Fuente: https://stackoverflow.com/a/19861690
   leading_zeros_hi="${quartet_hi%%[!0]*}"
   leading_zeros_lo="${quartet_lo%%[!0]*}"
   printf "%s:%s\n" "${quartet_hi#"${leading_zeros_hi}"}" "${quartet_lo#"${leading_zeros_lo}"}"
