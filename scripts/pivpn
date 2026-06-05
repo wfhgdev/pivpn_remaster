@@ -1,10 +1,10 @@
 #!/bin/bash
 
-### Constants
+### Constantes
 CHECK_PKG_INSTALLED='dpkg-query -s'
 scriptDir="/opt/pivpn"
 
-### Functions
+### Funciones
 err() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
 }
@@ -20,14 +20,14 @@ backup() {
 }
 
 showHelp() {
-  echo "::: To pass off to the pivpn command for each protocol"
+  echo "::: Para pasar al comando pivpn para cada protocolo"
   echo ":::"
-  echo "::: Usage: pivpn wg  <command> [option]"
-  echo "::: Usage: pivpn ovpn <command> [option]"
+  echo "::: Uso: pivpn wg  <command> [option]"
+  echo "::: Uso: pivpn ovpn <command> [option]"
   echo ":::"
-  echo ":::  -h,  help             Show this help dialog"
-  echo ":::  -u,  uninstall        Uninstall pivpn from your system!"
-  echo ":::  -bk, backup           Backup VPN configs and user profiles"
+  echo ":::  -h,  help             Mostrar este diálogo de ayuda"
+  echo ":::  -u,  uninstall        ¡Desinstala PiVPN de tu sistema!"
+  echo ":::  -bk, backup           Realizar una copia de seguridad de las configuraciones VPN y los perfiles de usuario"
   exit 0
 }
 
