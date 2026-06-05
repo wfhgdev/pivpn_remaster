@@ -1,166 +1,73 @@
 #!/bin/bash
 
 ### Constantes
-
 CHECK_PKG_INSTALLED='dpkg-query -s'
-scriptdir="/opt/pivpn"
-vpn="wireguard"
-
-if grep -qsEe "^NAME\=['\"]?Alpine[a-zA-Z ]*['\"]?$" /etc/os-release; then
-  CHECK_PKG_INSTALLED='apk --no-cache info -e'
-fi
+scriptDir="/opt/pivpn"
 
 ### Funciones
-err() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
-}
-
-makeConf() {
-  shift
-  ${SUDO} "${scriptdir}/${vpn}/makeCONF.sh" "$@"
-  exit "${?}"
-}
-
-listConnected() {
-  shift
-  ${SUDO} "${scriptdir}/${vpn}/clientSTAT.sh" "$@"
-  exit "${?}"
-}
-
-debug() {
-  echo "::: Generando salida de depuración"
-
-  ${SUDO} "${scriptdir}/${vpn}/pivpnDEBUG.sh" | tee /tmp/debug.log
-  e="${?}"
-
-  echo "::: "
-  echo "::: Salida de depuración completada arriba."
-  echo "::: Copia guardada en /tmp/debug.log"
-  echo "::: "
-  exit "${e}"
-}
-
-listClients() {
-  ${SUDO} "${scriptdir}/${vpn}/listCONF.sh"
-  exit "${?}"
-}
-
-showQrcode() {
-  shift
-  ${SUDO} "${scriptdir}/${vpn}/qrcodeCONF.sh" "$@"
-  exit "${?}"
-}
-
-removeClient() {
-  shift
-  ${SUDO} "${scriptdir}/${vpn}/removeCONF.sh" "$@"
-  exit "${?}"
-}
-
-disableClient() {
-  shift
-  ${SUDO} "${scriptdir}/${vpn}/disableCONF.sh" "$@"
-  exit "${?}"
-}
-
-enableClient() {
-  shift
-  ${SUDO} "${scriptdir}/${vpn}/enableCONF.sh" "$@"
-  exit "${?}"
-}
+err() { 
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2 
+} 
 
 uninstallServer() {
-  ${SUDO} "${scriptdir}/uninstall.sh" "${vpn}"
+  ${SUDO} "${scriptDir}/uninstall.sh"
   exit "${?}"
-}
+} 
 
-updateScripts() {
-  shift
-  ${SUDO} "${scriptdir}/update.sh" "$@"
+backup() { 
+  ${SUDO} "${scriptDir}/backup.sh" 
   exit "${?}"
-}
+} 
 
-backup() {
-  ${SUDO} "${scriptdir}/backup.sh" "${vpn}"
-  exit "${?}"
-}
+showHelp() { 
+  echo "::: Para pasar al comando pivpn para cada protocolo" 
+  echo ":::" 
+  echo "::: Uso: pivpn wg  <comando> [opción]" 
+  echo "::: Uso: pivpn ovpn <comando> [opción]" 
+  echo ":::" 
+  echo ":::  -h,  help             Mostrar este diálogo de ayuda" 
+  echo ":::  -u,  uninstall        ¡Desinstalar pivpn de tu sistema!"
+  echo ":::  -bk, backup           Respaldar configuraciones de VPN y perfiles de usuario" 
+  exit 0 
+} 
 
-showHelp() {
-  echo "::: ¡Controla todas las funciones específicas de PiVPN!"
-  echo ":::"
-  echo "::: Uso: pivpn <comando> [opción]"
-  echo ":::"
-  echo "::: Comandos:"
-  echo ":::    -a, add              Crear un perfil conf de cliente"
-  echo ":::    -c, clients          Listar los clientes conectados al servidor"
-  echo ":::    -d, debug            Iniciar una sesión de depuración si tienes problemas"
-  echo ":::    -l, list             Listar todos los clientes"
-  echo -n ":::   -qr, qrcode           Mostrar el código qr de un cliente para usar "
-  echo "con la aplicación móvil"
-  echo ":::    -r, remove           Eliminar un cliente"
-  echo ":::  -off, off              Deshabilitar un cliente"
-  echo ":::   -on, on               Habilitar un cliente"
-  echo ":::    -h, help             Mostrar este diálogo de ayuda"
-  echo ":::    -u, uninstall        ¡Desinstalar pivpn de tu sistema!"
-  echo ":::   -up, update           Actualizar los scripts de PiVPN"
-  echo ":::   -bk, backup           Respaldar configuraciones de VPN y perfiles de usuario"
-  exit 0
-}
-
-### Script
-# Debe ser root para usar esta herramienta
-if [[ "${EUID}" -ne 0 ]]; then
-  if ${CHECK_PKG_INSTALLED} sudo &> /dev/null; then
-    export SUDO="sudo"
-  else
-    err "::: Por favor, instala sudo o ejecuta esto como root."
-    exit 1
+### Script 
+# Debe ser root para usar esta herramienta 
+if [[ "${EUID}" -ne 0 ]]; then 
+  if ${CHECK_PKG_INSTALLED} sudo &> /dev/null; then 
+    export SUDO="sudo" 
+  else 
+    err "::: Por favor, instala sudo o ejecuta esto como root." 
+    exit 1 
   fi
-fi
+fi 
+
+if grep -qsEe "^NAME\=['\"]?Alpine[a-zA-Z ]*['\"]?$" /etc/os-release; then 
+  CHECK_PKG_INSTALLED='apk --no-cache info -e' 
+fi 
 
 if [[ "$#" == 0 ]]; then
   showHelp
-fi
+fi 
 
-# Manejar la redirección a funciones específicas según los argumentos
-case "${1}" in
-  "-a" | "add")
-    makeConf "$@"
-    ;;
-  "-c" | "clients")
-    listConnected "$@"
-    ;;
-  "-d" | "debug")
-    debug
-    ;;
-  "-l" | "list")
-    listClients
-    ;;
-  "-qr" | "qrcode")
-    showQrcode "$@"
-    ;;
-  "-r" | "remove")
-    removeClient "$@"
-    ;;
-  "-off" | "off")
-    disableClient "$@"
-    ;;
-  "-on" | "on")
-    enableClient "$@"
-    ;;
+# Manejar la redirección a funciones específicas según los argumentos 
+case "${1}" in 
+  wg) 
+    "${scriptDir}/wireguard/pivpn.sh" "${@:2}" 
+    ;; 
+  ovpn) 
+    "${scriptDir}/openvpn/pivpn.sh" "${@:2}" 
+    ;; 
   "-h" | "help")
-    showHelp
-    ;;
-  "-u" | "uninstall")
-    uninstallServer
-    ;;
-  "-up" | "update")
-    updateScripts "$@"
-    ;;
-  "-bk" | "backup")
-    backup
-    ;;
-  *)
-    showHelp
-    ;;
-esac
+    showHelp 
+    ;; 
+  "-u" | "uninstall") 
+    uninstallServer 
+    ;; 
+  "-bk" | "backup") 
+    backup 
+    ;; 
+  *) 
+    showHelp 
+    ;; 
+esac 
