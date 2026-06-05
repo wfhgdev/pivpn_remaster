@@ -45,12 +45,12 @@ Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con l
 *   **Red Estable:** Una conexión a internet activa para descargar los paquetes necesarios.
 *   **IP Estática:** Se recomienda encarecidamente configurar una dirección IP local estática o reservada (reservada en DHCP) para tu servidor antes de empezar.
 *   **Puerto Abierto (Enrutador):** Necesitarás acceso a tu router para redirigir el puerto de la VPN (típicamente el puerto UDP `51820` para WireGuard o UDP `1194` para OpenVPN).
-*   **IP pública accesible:** Es ideal que tu enrutador tenga una IP Fija Publica. Si tu IP pública es dinámica (es de decir cambia seguido), necesitarás configurar un servicio de DNS Dinámico (DDNS) como [DuckDNS](https://www.duckdns.org) o [No-IP](https://www.noip.com), el cual PiVPN te permite integrar durante la instalación.
+*   **IP pública accesible:** Es ideal que tu enrutador tenga una IP Fija Publica. Si tu IP pública es dinámica (es decir cambia seguido), necesitarás configurar un servicio de DNS Dinámico (DDNS) como [DuckDNS](https://www.duckdns.org) o [No-IP](https://www.noip.com), el cual PiVPN te permite integrar durante la instalación.
 
 ----
 ## :hammer_and_wrench: Instalación
 
-### Metodo 1 (Estándar)
+### :thumbsup: Metodo 1 (Estándar)
 
 ```Shell
 curl https://raw.githubusercontent.com/Masterwilledu/pivpn/master/auto_install/install.sh | bash
