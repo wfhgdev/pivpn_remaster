@@ -1,29 +1,29 @@
 #!/bin/bash
 
-### Constants
+### Constantes
 encoding="ansiutf8"
 
-### Functions
+### Funciones
 err() {
   echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
 }
 
 helpFunc() {
-  echo "::: Show the qrcode of a client for use with the mobile app"
+  echo "::: Muestra el código QR de un cliente para su uso con la aplicación móvil"
   echo ":::"
-  echo -n "::: Usage: pivpn <-qr|qrcode> [-h|--help] [Options] "
-  echo "[<client-1> ... [<client-2>] ...]"
+  echo -n "::: Uso: pivpn <-qr|qrcode> [-h|--help] [Opciones] "
+  echo "[<cliente-1> ... [<cliente-2>] ...]"
   echo ":::"
-  echo "::: Options:"
-  echo ":::  -a256|ansi256        Shows QR Code in ansi256 characters"
-  echo "::: Commands:"
-  echo ":::  [none]               Interactive mode"
-  echo ":::  <client>             Client(s) to show"
-  echo ":::  -h,--help            Show this help dialog"
+  echo "::: Opciones:"
+  echo ":::  -a256|ansi256        Muestra el código QR en caracteres ansi256"
+  echo "::: Comandos:"
+  echo ":::  [ninguno]            Modo interactivo"
+  echo ":::  <cliente>            Cliente(s) a mostrar"
+  echo ":::  -h,--help            Muestra este diálogo de ayuda"
 }
 
 ### Script
-# Parse input arguments
+# Analizar los argumentos de entrada
 
 while [[ "$#" -gt 0 ]]; do
   _key="${1}"
@@ -47,14 +47,14 @@ done
 cd /etc/wireguard/configs || exit
 
 if [[ ! -s clients.txt ]]; then
-  err "::: There are no clients to show"
+  err "::: No hay clientes para mostrar"
   exit 1
 fi
 
 mapfile -t LIST < <(awk '{print $1}' clients.txt)
 
 if [[ "${#CLIENTS_TO_SHOW[@]}" -eq 0 ]]; then
-  echo -e "::\e[4m  Client list  \e[0m::"
+  echo -e "::\e[4m  Lista de clientes  \e[0m::"
   len="${#LIST[@]}"
   COUNTER=1
 
@@ -63,11 +63,11 @@ if [[ "${#CLIENTS_TO_SHOW[@]}" -eq 0 ]]; then
     ((COUNTER++))
   done
 
-  echo -n "Please enter the Index/Name of the Client to show: "
+  echo -n "Por favor, introduce el índice/nombre del cliente a mostrar: "
   read -r CLIENTS_TO_SHOW
 
   if [[ -z "${CLIENTS_TO_SHOW}" ]]; then
-    err "::: You can not leave this blank!"
+    err "::: ¡No puedes dejar esto en blanco!"
     exit 1
   fi
 fi
@@ -76,27 +76,27 @@ for CLIENT_NAME in "${CLIENTS_TO_SHOW[@]}"; do
   re='^[0-9]+$'
 
   if [[ "${CLIENT_NAME:0:1}" == "-" ]]; then
-    err "${CLIENT_NAME} is not a valid client name or option"
+    err "${CLIENT_NAME} no es un nombre de cliente u opción válida"
     exit 1
   elif [[ "${CLIENT_NAME}" =~ $re ]]; then
     CLIENT_NAME="${LIST[$((CLIENT_NAME - 1))]}"
   fi
 
   if grep -qw "${CLIENT_NAME}" clients.txt; then
-    echo -e "::: Showing client \e[1m${CLIENT_NAME}\e[0m below"
+    echo -e "::: Mostrando al cliente \e[1m${CLIENT_NAME}\e[0m a continuación"
     echo "====================================================================="
 
     qrencode -t "${encoding}" < "${CLIENT_NAME}.conf"
 
     echo "====================================================================="
   elif [[ -f "${CLIENT_NAME}" ]]; then
-    echo -e "::: Showing client \e[1m${CLIENT_NAME}\e[0m below"
+    echo -e "::: Mostrando al cliente \e[1m${CLIENT_NAME}\e[0m a continuación"
     echo "====================================================================="
 
     qrencode -t "${encoding}" < "${CLIENT_NAME}"
 
     echo "====================================================================="
   else
-    echo -e "::: \e[1m${CLIENT_NAME}\e[0m does not exist"
+    echo -e "::: \e[1m${CLIENT_NAME}\e[0m no existe"
   fi
 done
