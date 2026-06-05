@@ -6,7 +6,7 @@
 TC_V2_METADATA="/etc/pivpn/openvpn/tc-v2-metadata.txt"
 
 if [ "${script_type}" != "tls-crypt-v2-verify" ]; then
-    echo "Unsupported script type, rejecting..."
+    echo "Tipo de script no compatible, rechazando..."
     exit 1
 fi
 
@@ -31,6 +31,6 @@ if grep -q ' '"${metadata}"'$' "${TC_V2_METADATA}"; then
     # Se permite continuar la autenticación
     exit 0
 else
-    # Rejected
+    # Rechazado
     exit 1
 fi
