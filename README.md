@@ -31,6 +31,20 @@ Recomendamos ejecutar PiVPN en la última imagen disponible de Raspberry Pi OS L
 PiVPN también debería funcionar con la mayoría de las distribuciones basadas en Ubuntu y Debian para PC, incluidas aquellas que usan UFW (Uncomplicated Firewall) por defecto en lugar de IpTables.
 
 ----
+## 📌 Requisitos Previos
+
+Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con las siguientes condiciones:
+
+*   **Sistema Operativo Compatible:** 
+    *   Raspberry Pi OS (Lite o Desktop)
+    *   Ubuntu Server (18.04 LTS o superior)
+    *   Debian (10 o superior)
+*   **Acceso Root:** Es necesario contar con privilegios de administrador (`sudo`).
+*   **Red Estable:** Una conexión a internet activa para descargar los paquetes necesarios.
+*   **IP Estática:** Se recomienda encarecidamente configurar una dirección IP local estática o reservada (reservada en DHCP) para tu servidor antes de empezar.
+*   **Puerto Abierto (Router):** Necesitarás acceso a tu router para redirigir el puerto de la VPN (típicamente el puerto UDP `51820` para WireGuard o UDP `1194` para OpenVPN).
+
+----
 ## Instalación
 
 ### Metodo 1 (Estándar)
