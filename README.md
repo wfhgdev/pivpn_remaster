@@ -1,6 +1,6 @@
 > [**PiVPN Spanish**]
 > 
-> ¡Bienvenido a este fork (o bifurcación) de **PiVPN**! Este proyecto es una traducción completa al español del script de instalación de PiVPN bifurcada del repositorio oficial, se traducen todos los comentarios, mensajes de error, cuadros de diálogo y salidas de consola, manteniendo intacta la lógica y las variables del código original.
+> ¡Bienvenido a este fork (o bifurcación) de **PiVPN**! Este proyecto es una traducción completa al español del script de instalación de PiVPN bifurcada del repositorio oficial, se traducen todos los comentarios, mensajes de error, cuadros de diálogo y salidas de consola, manteniendo intacta la lógica y las variables del código original. El objetivo principal es hacer accesible la instalación de este servidor VPN a la comunidad hispanohablante.
 
 ![Pivpn Banner](pivpnbanner.png)
 
