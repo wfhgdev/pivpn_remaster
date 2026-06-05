@@ -51,14 +51,14 @@ Antes de proceder con la instalación, asegúrate de que tu sistema cumpla con l
 ## :hammer_and_wrench: Instalación
 
 ### :thumbsup: Metodo 1 (Estándar)
-Asegúrate de tener `curl` instalado usando el comando `curl --version`, de lo contrario puedes instalar cURL (Cliente para URLs) con el comando: `sudo apt install curl`
+Antes de instalar PiVPN, debes usar el siguiente comando en tu terminal para actualizar el sistema operativo: `sudo apt update && sudo apt upgrade -y` Asegúrate de tener `curl` instalado, verifícalo usando el comando `curl --version`, de lo contrario puedes instalar cURL (Cliente para URLs) con el comando: `sudo apt install curl`
 
 ```Shell
 curl https://raw.githubusercontent.com/Masterwilledu/pivpn/master/auto_install/install.sh | bash
 ```
 
 ### :sheep: Metodo 2 (Clonación de repositorio)
-Asegúrate de tener `git` instalado con el comando `git --version`, puedes instalar Git (sistema de control de versiones) con el comando: `sudo apt install git`
+Antes de instalar PiVPN, debes usar el siguiente comando en tu terminal para actualizar el sistema operativo: `sudo apt update && sudo apt upgrade -y` Asegúrate de tener `git` instalado, verifícalo con el comando `git --version`, puedes instalar Git (sistema de control de versiones) con el comando: `sudo apt install git`
 
 ```Shell
 git clone https://github.com/Masterwilledu/pivpn.git
