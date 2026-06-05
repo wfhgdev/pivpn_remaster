@@ -13,7 +13,7 @@ scriptusage() {
   echo "::: Uso: pivpn <-c|clients> [-b|bytes]"
   echo ":::"
   echo "::: Comandos:"
-  echo ":::  [none]              Lista los clientes en formato legible"
+  echo ":::  [ninguno]              Lista los clientes en formato legible"
   echo ":::  -b, bytes           Lista los clientes en notación decimal con puntos"
   echo ":::  -h, help            Muestra este cuadro de diálogo de uso"
 }
