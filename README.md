@@ -16,11 +16,11 @@
 [![Generic badge](https://img.shields.io/badge/status-page-blue.svg)](https://stats.uptimerobot.com/8X64yTjrJO)
 [![semantic-release: angular](https://img.shields.io/badge/semantic--release-angular-e10079?logo=semantic-release)](https://github.com/semantic-release/semantic-release)
 
-<div>PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) o PC en un servidor VPN utilizando ambos o uno de los siguientes protocolos VPN gratuitos de código abierto:</div>
+PiVPN es un conjunto de scripts de consola desarrollados para convertir fácilmente su Raspberry Pi (TM) o PC en un servidor VPN utilizando ambos o uno de los siguientes protocolos VPN gratuitos de código abierto:
 * [WireGuard](https://www.wireguard.com/)
 * [OpenVPN](https://openvpn.net)
 
-<div>La misión principal de este script es permitir que un usuario tenga una VPN lo más económicamente posible en casa sin necesidad de ser un experto en tecnología. Por eso, PiVPN está diseñado para funcionar en una Raspberry Pi (aprox $35 USD), este script es un instalador de un solo comando que le permitirá una gestión sencilla de la VPN con el uso del comando 'pivpn'.
+La misión principal de este script es permitir que un usuario tenga una VPN lo más económicamente posible en casa sin necesidad de ser un experto en tecnología. Por eso, PiVPN está diseñado para funcionar en una Raspberry Pi (aprox $35 USD), este script es un instalador de un solo comando que le permitirá una gestión sencilla de la VPN con el uso del comando 'pivpn'.
 
 Dicho esto...
 
@@ -28,7 +28,7 @@ PiVPN es, sin duda, la forma más sencilla y rápida de instalar y configurar un
 
 Recomendamos ejecutar PiVPN en la última imagen disponible de Raspberry Pi OS Lite para la Raspberry Pi de tu casa, para que puedas conectarte a tu red VPN desde ubicaciones remotas no seguras y usar Internet de forma segura. Sin embargo, también puedes usar PiVPN en otras computadoras monoplaca (SBC) que tengan sistema operativo Ubuntu/Debian o si tienes un ISP (Proveedor de Internet) poco fiable (que no permita abrir puertos TCP/UDP) puedes adquirir cualquier VPS (Servidor Privado Virtual) de un proveedor de servicios en la nube que tenga preinstalado Ubuntu o Debian. Al usar una VPN en un servidor externo, puedes conectarte desde casa y dado que tu tráfico saldrá del proveedor de la nube/VPS, tu proveedor de internet solo verá tráfico cifrado.
 
-PiVPN también debería funcionar con la mayoría de las distribuciones basadas en Ubuntu y Debian para PC, incluidas aquellas que usan UFW (Uncomplicated Firewall) por defecto en lugar de IpTables.</div>
+PiVPN también debería funcionar con la mayoría de las distribuciones basadas en Ubuntu y Debian para PC, incluidas aquellas que usan UFW (Uncomplicated Firewall) por defecto en lugar de IpTables.
 
 ----
 ## Instalación
