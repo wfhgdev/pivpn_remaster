@@ -1,5 +1,5 @@
-> [!ADVERTENCIA!]
-> PiVPN se mantiene con el máximo esfuerzo posible; para obtener más información consulte [aquí](https://github.com/pivpn/pivpn/releases/tag/v4.6.1). La versión anterior se encuentra [aquí](https://github.com/pivpn/pivpn/releases/tag/v4.6.0).
+> [!# PiVPN en Español 🇪🇸 **🇪🇸**!]
+> ¡Bienvenido a este fork de **PiVPN**! Este proyecto es una traducción completa al español del script de instalación de PiVPN en Bash.
 
 ![Pivpn Banner](pivpnbanner.png)
 
