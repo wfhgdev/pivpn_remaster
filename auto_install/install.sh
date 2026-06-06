@@ -344,7 +344,7 @@ Por favor, elige entre las siguientes opciones \
 
 distroCheck() {
   # Comprobar distribución compatible
-  # Compatibilidad, funciones para comprobar el SO compatible
+  # Compatibilidad, funciones para comprobar el Sistema Operativo compatible
   # distroCheck, maybeOSSupport, noOSSupport
   # si el comando lsb_release está en su sistema
   if command -v lsb_release > /dev/null; then
@@ -401,16 +401,16 @@ distroCheck() {
 
 noOSSupport() {
   if [[ "${runUnattended}" == 'true' ]]; then
-    err "::: SO no válido detectado"
-    err "::: No hemos podido detectar un SO compatible."
-    err "::: Actualmente este instalador soporta Raspbian, Debian y Ubuntu."
+    err "::: Sistema Operativo no válido detectado"
+    err "::: No hemos podido detectar un Sistema Operativo compatible."
+    err "::: Actualmente este instalador soporta RaspberryPi OS, Debian y Ubuntu."
     exit 1
   fi
 
   whiptail \
-    --backtitle "SO NO VÁLIDO DETECTADO" \
-    --title "SO no válido" \
-    --msgbox "No hemos podido detectar un SO compatible.
+    --backtitle "SISTEMA OPERATIVO NO VÁLIDO DETECTADO" \
+    --title "Sistema Operativo no válido" \
+    --msgbox "No hemos podido detectar un Sistema Operativo compatible.
 Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
 Para más detalles, consulta nuestra documentación en \
 https://github.com/pivpn/pivpn/wiki" "${r}" "${c}"
@@ -419,25 +419,25 @@ https://github.com/pivpn/pivpn/wiki" "${r}" "${c}"
 
 maybeOSSupport() {
   if [[ "${runUnattended}" == 'true' ]]; then
-    echo "::: SO no compatible"
-    echo -n "::: Estás en un SO que no hemos probado pero PODRÍA funcionar, "
+    echo "::: Sistema Operativo no compatible"
+    echo -n "::: Estás en un Sistema Operativo que no hemos probado pero PODRIA funcionar, "
     echo "continuando de todos modos..."
     return
   fi
 
   if whiptail \
-    --backtitle "SO No Probado" \
-    --title "SO No Probado" \
-    --yesno "Estás en un SO que no hemos probado pero PODRÍA funcionar.
+    --backtitle "Sistema Operativo No Probado" \
+    --title "Sistema Operativo No Probado" \
+    --yesno "Estás en un Sistema Operativo que no hemos probado pero PODRÍA funcionar.
 Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
-Para más detalles sobre los SO compatibles por favor consulta nuestra documentación \
+Para más detalles sobre los Sistema Operativo compatibles por favor consulta nuestra documentación \
 at https://github.com/pivpn/pivpn/wiki
 ¿Te gustaría continuar de todos modos?" "${r}" "${c}"; then
-    echo "::: No se detectó un SO perfectamente compatible pero,"
+    echo "::: No se detectó un Sistema Operativo perfectamente compatible pero,"
     echo -n "::: Continuando la instalación bajo el propio "
     echo "riesgo del usuario..."
   else
-    err "::: Saliendo debido a un SO no probado"
+    err "::: Saliendo debido a un Sistema Operativo no probado"
     exit 1
   fi
 }
@@ -561,7 +561,7 @@ notifyPackageUpdatesAvailable() {
     echo "::: ¡Tu sistema está actualizado! Continuando con la instalación de PiVPN..."
   else
     echo "::: ¡Hay ${updatesToInstall} actualizaciones disponibles para tu sistema!"
-    echo "::: ¡Te recomendamos que actualices tu SO después de instalar PiVPN! "
+    echo "::: ¡Te recomendamos que actualices tu Sistema Operativo después de instalar PiVPN! "
     echo ":::"
   fi
 }
