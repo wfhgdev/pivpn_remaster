@@ -428,8 +428,7 @@ maybeOSSupport() {
   if whiptail \
     --backtitle "SISTEMA OPERATIVO NO PROBADO" \
     --title "Sistema Operativo No Probado" --yes-button "Sí" --no-button "No" \
-    --yesno "Estás en un Sistema Operativo que no hemos probado, pero aún
-PODRÍA funcionar. Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
+    --yesno "Estás en un Sistema Operativo que no hemos probado, pero aún PODRÍA funcionar. Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
 
 Para más detalles sobre los Sistemas Operativos compatibles consulta nuestra documentación en https://github.com/pivpn/pivpn/wiki
 
