@@ -852,7 +852,7 @@ welcomeDialogs() {
   whiptail \
     --backtitle "Iniciando interfaz de red" \
     --title "IP Local Estática Necesaria" --ok-button "Aceptar" \
-    --msgbox "--msgbox "PiVPN crea un servidor VPN, tu enrutador necesita saber exactamente a qué dispositivo enviar los datos de la VPN. Si la dirección IP local de tu servidor VPN cambia, el enrutador redirigirá el tráfico a un destino vacío y tu VPN dejará de funcionar por completo. Una IP local estática evita que esto pase.
+    --msgbox "--msgbox "PiVPN crea un Servidor VPN. Si la dirección IP local de tu servidor VPN cambia, el enrutador redirigirá el tráfico a un destino vacío y tu VPN dejará de funcionar por completo. Una IP local estática evita que esto pase.
 
 En la siguiente sección, puedes elegir usar la configuración de red actual \
 (DHCP) o editarla manualmente." "${r}" "${c}"
