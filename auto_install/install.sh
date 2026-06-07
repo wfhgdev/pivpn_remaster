@@ -1125,7 +1125,7 @@ askforcedipv6route() {
 
   if whiptail \
     --backtitle "Configuración de Privacidad" \
-    --title "Filtración de IPv6" --yes-button "Sí" \ --no-button "No" \
+    --title "Filtración de IPv6" --yes-button "Sí" --no-button "No" \
     --yesno "Aunque este servidor no parece tener una conexión IPv6 \
 en funcionamiento o IPv6 se deshabilitó a propósito, todavía se \
 recomienda forzar todas las conexiones IPv6 por la VPN.\\n\\nEsto \
@@ -1221,7 +1221,7 @@ getStaticIPv4Settings() {
 
   if whiptail \
     --backtitle "Calibrando la interfaz de red" \
-    --title "Reserva DHCP" --yes-button "Sí" \ --no-button "No" \
+    --title "Reserva DHCP" --yes-button "Sí" --no-button "No" \
     --defaultno \
     --yesno "¿Estás usando una IP local reservada por DHCP en tu enrutador/servidor DHCP?
 Estas son tus configuraciones de red actuales:
@@ -1245,7 +1245,7 @@ No: Configurar una dirección IP Local Estática
     # Preguntar si el usuario desea usar las configuraciones de DHCP como su IP local estática
     if whiptail \
       --backtitle "Calibrando la interfaz de red" \
-      --title "Dirección IP estática" --yes-button "Sí" \ --no-button "No" \
+      --title "Dirección IP estática" --yes-button "Sí" --no-button "No" \
       --yesno "¿Deseas usar tus configuraciones de red actuales como una dirección \
 IP local estática?
 
@@ -1293,7 +1293,7 @@ IPv4 deseada" "${r}" "${c}" "${CurrentIPv4addr}" \
             else
               whiptail \
                 --backtitle "Calibrando la interfaz de red" \
-                --title "Dirección IPv4" --ok-button "Aceptar" \ --cancel-button "Cancelar" \
+                --title "Dirección IPv4" --ok-button "Aceptar" --cancel-button "Cancelar" \
                 --msgbox "Has introducido una dirección IP no válida: ${IPv4addr}
 
 Por favor, introduce una dirección IP en notación CIDR, ejemplo: 192.168.23.211/24
@@ -1342,7 +1342,7 @@ Si no estás seguro, simplemente mantén la opción predeterminada." "${r}" "${c
         # Dar al usuario la oportunidad de revisar sus configuraciones antes de continuar
         if whiptail \
           --backtitle "Calibrando la interfaz de red" \
-          --title "Dirección IP estática" \
+          --title "Dirección IP estática" --yes-button "Sí" --no-button "No" \
           --yesno "¿Son correctas estas configuraciones?
 
 						Dirección IP:    ${IPv4addr}
