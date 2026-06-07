@@ -846,8 +846,8 @@ welcomeDialogs() {
   whiptail \
     --backtitle "BIENVENIDO" \
     --title "Asistente de instalación PiVPN en Español" --ok-button "Aceptar" --scrolltext \
-    --msgbox "PiVPN es un conjunto de herramientas (scripts) de código abierto diseñado para simplificar drásticamente la instalación y gestión de un servidor VPN en una placa Raspberry Pi o en cualquier sistema basado en Linux \
-En lugar de tener que instalar y configurar desde cero los complicados archivos de configuración de OpenVPN o WireGuard, PiVPN utiliza un asistente interactivo en la terminal." "${r}" "${c}"
+    --msgbox "PiVPN es un conjunto de herramientas (scripts) de código abierto diseñado para simplificar drásticamente la instalación y gestión de un servidor VPN en una placa Raspberry Pi o en cualquier sistema basado en Linux Debian/Ubuntu. En lugar de tener que instalar y configurar desde cero los complicados archivos de configuración de OpenVPN o WireGuard, PiVPN utiliza un asistente interactivo en la terminal." "${r}" "${c}"
+
 
   # Explicar la necesidad de una dirección estática
   whiptail \
