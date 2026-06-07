@@ -1044,7 +1044,7 @@ staticIpNotSupported() {
   # así que simplemente usa lo que tienes.
   whiptail \
     --backtitle "Información de IP" \
-    --title "Información de IP" \
+    --title "Información de IP" --ok-button "Aceptar" \
     --msgbox "Dado que creemos que no estás usando Raspberry Pi OS, no \
 configuraremos una IP estática por ti.
 Si estás en Amazon Web Services, no puedes configurar una IP estática. Solo asegúrate \
@@ -1263,7 +1263,7 @@ IP local estática?
       # disponible a través de DHCP y podría causar un conflicto.
       whiptail \
         --backtitle "Información de dirección IP" \
-        --title "Nota: Conflicto de dirección IP" \
+        --title "Nota: Conflicto de dirección IP" --ok-button "Aceptar" \
         --msgbox "Es posible que tu enrutador intente asignar esta IP a \
 otro dispositivo, lo que causaría un conflicto. Pero en la mayoría de los casos el \
 enrutador es lo suficientemente inteligente como para no hacerlo.
@@ -1293,7 +1293,7 @@ IPv4 deseada" "${r}" "${c}" "${CurrentIPv4addr}" \
             else
               whiptail \
                 --backtitle "Calibrando la interfaz de red" \
-                --title "Dirección IPv4" --ok-button "Aceptar" --cancel-button "Cancelar" \
+                --title "Dirección IPv4" --ok-button "Aceptar" \
                 --msgbox "Has introducido una dirección IP no válida: ${IPv4addr}
 
 Por favor, introduce una dirección IP en notación CIDR, ejemplo: 192.168.23.211/24
@@ -1323,7 +1323,7 @@ deseada" "${r}" "${c}" "${CurrentIPv4gw}" \
             else
               whiptail \
                 --backtitle "Calibrando la interfaz de red" \
-                --title "Puerta de enlace IPv4 (enrutador)" \
+                --title "Puerta de enlace IPv4 (enrutador)" --ok-button "Aceptar" \
                 --msgbox "Has introducido una IP de puerta de enlace no válida: ${IPv4gw}
 
 Por favor, introduce la dirección IP de tu puerta de enlace (enrutador), ejemplo: 192.168.23.1
@@ -1467,7 +1467,7 @@ chooseUser() {
   whiptail \
     --msgbox \
     --backtitle "Analizando la lista de usuarios" \
-    --title "Usuarios locales" \
+    --title "Usuarios locales" --ok-button "Aceptar" \
     "Elige un usuario local que contendrá tus configuraciones ovpn." \
     "${r}" \
     "${c}"
