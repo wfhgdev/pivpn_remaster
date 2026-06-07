@@ -982,7 +982,7 @@ chooseInterface() {
   chooseInterfaceCmd=(whiptail
     --separate-output
     --radiolist "Elige una interfaz para IPv4 \
-(presiona espacio para seleccionar):" "${r}" "${c}" "${interfaceCount}")
+(presiona tecla espacio para seleccionar):" "${r}" "${c}" "${interfaceCount}")
 
   if chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" \
     "${interfacesArray[@]}" \
@@ -1001,7 +1001,7 @@ chooseInterface() {
     chooseInterfaceCmd=(whiptail
       --separate-output
       --radiolist "Elige una interfaz para IPv6, usualmente la misma usada por \
-IPv4 (presiona espacio para seleccionar):" "${r}" "${c}" "${interfaceCount}")
+IPv4 (presiona tecla espacio para seleccionar):" "${r}" "${c}" "${interfaceCount}")
 
     if chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" \
       "${interfacesArray[@]}" \
@@ -1540,7 +1540,7 @@ chooseUser() {
     --title "Elegir un usuario"
     --separate-output
     --radiolist
-    "Elige (presiona espacio para seleccionar):"
+    "Elige (presiona tecla espacio para seleccionar):"
     "${r}"
     "${c}"
     "${numUsers}")
@@ -2076,7 +2076,7 @@ WireGuard es más suave con la batería que OpenVPN.
 OpenVPN todavía está disponible si necesitas el tradicional, flexible y confiable \
 protocolo VPN o si necesitas funciones como TCP y dominio de búsqueda personalizado.
 
-Elige una VPN (presiona espacio para seleccionar):" "${r}" "${c}" 2)
+Elige una VPN (presiona tecla espacio para seleccionar):" "${r}" "${c}" 2)
       VPNChooseOptions=(WireGuard "" on
         OpenVPN "" off)
 
@@ -2253,7 +2253,7 @@ askCustomProto() {
   # con un diálogo de whiptail
   if pivpnPROTO="$(whiptail \
     --title "Protocolo" \
-    --radiolist "Elige un protocolo (presiona espacio para seleccionar). \
+    --radiolist "Elige un protocolo (presiona tecla espacio para seleccionar). \
 Por favor, elige TCP solo si sabes por qué necesitas TCP." "${r}" "${c}" 2 \
     "UDP" "" ON \
     "TCP" "" OFF \
@@ -2461,7 +2461,7 @@ obtengas bloqueo de anuncios sobre la marcha?" "${r}" "${c}"; then
     --title "Proveedor de DNS"
     --separate-output
     --radiolist "Selecciona el Proveedor DNS para tus Clientes VPN \
-(presiona espacio para seleccionar).
+(presiona tecla espacio para seleccionar).
 Para usar el tuyo propio, selecciona Custom.
 
 En caso de que tengas un resolutor local en ejecución, p. ej. unbound, selecciona \
@@ -2694,7 +2694,7 @@ askPublicIPOrDNS() {
     --title "IP Pública o DNS" \
     --radiolist \
     "¿Los clientes usarán una IP Pública o Nombre DNS para conectarse a tu servidor \
-(presiona espacio para seleccionar)?" "${r}" "${c}" 2 \
+(presiona tecla espacio para seleccionar)?" "${r}" "${c}" 2 \
     "${IPv4pub}" "Usar esta IP pública" "ON" \
     "DNS Entry" "Usar un DNS público" "OFF" \
     3>&1 1>&2 2>&3)"; then
@@ -2835,7 +2835,7 @@ compatibilidad." \
       --backtitle "Configurar OpenVPN" \
       --title "Tamaño del certificado ECDSA" \
       --radiolist "Elige el tamaño deseado de tu certificado \
-(presiona espacio para seleccionar):
+(presiona tecla espacio para seleccionar):
 Este es un certificado que se generará en tu sistema. \
 Cuanto más grande sea el certificado, más tiempo tomará. \
 Para la mayoría de las aplicaciones, se recomienda usar 256 bits. \
@@ -2851,7 +2851,7 @@ que 256 bits ya son tan seguros como RSA de 3072 bits." "${r}" "${c}" 3 \
       --backtitle "Configurar OpenVPN" \
       --title "Tamaño del certificado RSA" \
       --radiolist "Elige el tamaño deseado de tu certificado \
-(presiona espacio para seleccionar):
+(presiona tecla espacio para seleccionar):
 Este es un certificado que se generará en tu sistema. \
 Cuanto más grande sea el certificado, más tiempo tomará. \
 Para la mayoría de las aplicaciones, se recomienda usar 2048 bits. \
