@@ -432,6 +432,7 @@ maybeOSSupport() {
 Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
 Para más detalles sobre los S.O. compatibles consulta nuestra
 documentación en https://github.com/pivpn/pivpn/wiki
+
 ¿Te gustaría continuar de todos modos?" "${r}" "${c}"; then
     echo "::: No se detectó un Sistema Operativo perfectamente compatible pero"
     echo -n "::: continua la instalación bajo el propio "
@@ -441,7 +442,6 @@ documentación en https://github.com/pivpn/pivpn/wiki
     exit 1
   fi
 }
-
 checkHostname() {
   # Comprueba la longitud del nombre de host
   host_name="$(hostname -s)"
