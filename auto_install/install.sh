@@ -4,11 +4,11 @@
 # https://pivpn.io
 # Fuertemente adaptado del proyecto pi-hole.net y...
 # https://github.com/StarshipEngineer/OpenVPN-Setup/
-#
-export LANG=es_ES.UTF-8
-export LC_ALL=es_ES.UTF-8
-export LC_CTYPE=es_ES.UTF-8
-export NCURSES_NO_UTF8_ACS=1
+export LANG=en_US.UTF-8
+# Instala con este comando (desde tu Pi):
+export LC_ALL=en_US.UTF-8
+# curl -sSfL https://install.pivpn.io | bash
+# Asegúrate de tener `curl` instalado
 
 ######## VARIABLES #########
 pivpnGitUrl="https://github.com/pivpn/pivpn.git"
@@ -38,7 +38,7 @@ CHECK_PKG_INSTALLED='dpkg-query -s'
 
 # Dependencias requeridas por el script,
 # independientemente del protocolo VPN elegido
-BASE_DEPS=(git tar curl grep bind9-dnsutils grepcidr  net-tools)
+BASE_DEPS=(git tar curl grep bind9-dnsutils grepcidr whiptail net-tools)
 BASE_DEPS+=(bsdmainutils bash-completion)
 
 BASE_DEPS_ALPINE=(git grep bind-tools newt net-tools bash-completion coreutils)
@@ -103,7 +103,7 @@ r=$((r < 20 ? 20 : r))
 c=$((c < 70 ? 70 : c))
 
 # Sobrescribir la configuración de localización para que la salida original se mantenga (C).
-#export LC_ALL=C Se deja como comentario porque rompe caracteres del español
+export LC_ALL=C
 
 main() {
   # Comprobaciones y configuraciones previas a la instalación
@@ -257,7 +257,7 @@ flagsCheck() {
 unattendedCheck() {
   if [[ "${runUnattended}" == 'true' ]]; then
     echo -n "::: --unattended pasado al script de instalación, "
-    echo "no se mostrarán diálogos de "
+    echo "no se mostrarán diálogos de whiptail"
 
     if [[ -z "${unattendedConfig}" ]]; then
       err "::: No se ha pasado ningún archivo de configuración"
@@ -323,7 +323,7 @@ askAboutExistingInstall() {
   opt3b="Reinstalar PiVPN con nueva configuración"
 
   UpdateCmd="$(whiptail \
-    ---title "¡Instalación existente detectada!" --ok-button "Aceptar" --cancel-button "Cancelar" \
+    --title "¡Instalación existente detectada!" \
     --menu "
 Hemos detectado una instalación existente.
 ${1}
@@ -409,33 +409,33 @@ noOSSupport() {
 
   whiptail \
     --backtitle "SISTEMA OPERATIVO NO VÁLIDO DETECTADO" \
-    --title "Sistema Operativo no válido" --ok-button "Aceptar" \
-    --msgbox "No hemos podido detectar un Sistema Operativo compatible. Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
-
-Para más detalles, consulta nuestra documentación en https://github.com/pivpn/pivpn/wiki" "${r}" "${c}"
+    --title "Sistema Operativo no válido" \
+    --msgbox "No hemos podido detectar un Sistema Operativo compatible.
+Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
+Para más detalles, consulta nuestra documentación en \
+https://github.com/pivpn/pivpn/wiki" "${r}" "${c}"
   exit 1
 }
-
 
 maybeOSSupport() {
   if [[ "${runUnattended}" == 'true' ]]; then
     echo "::: Sistema Operativo no compatible"
-    echo -n "::: Estás en un Sistema Operativo que no hemos probado pero podría funcionar, "
+    echo -n "::: Estás en un S.O que no hemos probado pero podría funcionar, "
     echo "continuando de todos modos..."
     return
   fi
 
   if whiptail \
-    --backtitle "SISTEMA OPERATIVO NO PROBADO" \
-    --title "Sistema Operativo No Probado" --yes-button "Sí" --no-button "No" \
-    --yesno "Estás en un Sistema Operativo que no hemos probado, pero aún PODRÍA funcionar. Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
-
-Para más detalles sobre los Sistemas Operativos compatibles consulta nuestra documentación en https://github.com/pivpn/pivpn/wiki
-
+    --backtitle "Sistema Operativo No Probado" \
+    --title "Sistema Operativo No Probado" \
+    --yesno "Estás en un S.O. que no hemos probado pero podría funcionar.  
+Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
+Para más detalles sobre los S.O. compatibles consulta nuestra
+documentación en https://github.com/pivpn/pivpn/wiki
 ¿Te gustaría continuar de todos modos?" "${r}" "${c}"; then
-    echo "::: No se detectó un Sistema Operativo perfectamente compatible pero"
-    echo -n "::: puede continuar la instalación bajo su propio "
-    echo "riesgo..."
+    echo "::: No se detectó un Sistema Operativo perfectamente compatible pero,"
+    echo -n "::: Continuando la instalación bajo el propio "
+    echo "riesgo del usuario..."
   else
     err "::: Saliendo debido a un Sistema Operativo no probado"
     exit 1
@@ -457,7 +457,7 @@ checkHostname() {
     until [[ "${#host_name}" -le 28 ]] \
       && [[ "${host_name}" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,28}$ ]]; do
       host_name="$(whiptail \
-        --title "Nombre de host demasiado largo" --ok-button "Aceptar" --cancel-button "Cancelar" \
+        --title "Nombre de host demasiado largo" \
         --inputbox "Tu nombre de host es demasiado largo.
 Introduce un nuevo nombre de host con menos de 28 caracteres
 No se permiten caracteres especiales." "${r}" "${c}" \
@@ -838,27 +838,27 @@ welcomeDialogs() {
     echo "::: Instalador Automatizado de PiVPN"
     echo -n "::: Este instalador transformará tu host ${PLAT} en un "
     echo "servidor OpenVPN o WireGuard!"
-    echo "::: Iniciando Interfaz de Red"
+    echo "::: Iniciando interfaz de red"
     return
   fi
 
   # Mostrar el diálogo de bienvenida
   whiptail \
-    --backtitle "BIENVENIDO" \
-    --title "Asistente de instalación PiVPN en Español" --ok-button "Aceptar" \
-    --msgbox "PiVPN es un conjunto de herramientas (scripts) de código abierto diseñado para simplificar drásticamente la instalación y gestión de un servidor VPN en una placa Raspberry Pi o en cualquier sistema basado en Linux Debian/Ubuntu. En lugar de tener que instalar y configurar desde cero los complicados archivos de configuración de OpenVPN o WireGuard, PiVPN utiliza un asistente interactivo en la terminal." "${r}" "${c}"
-
+    --backtitle "Bienvenido" \
+    --title "Instalador Automatizado de PiVPN" \
+    --msgbox "¡Este instalador transformará tu Raspberry Pi en un \
+servidor OpenVPN o WireGuard!" "${r}" "${c}"
 
   # Explicar la necesidad de una dirección estática
   whiptail \
-    --backtitle "INICIANDO INTERFAZ DE RED" \
-    --title "IP Local Estática Necesaria" --ok-button "Aceptar" \
-    --msgbox "PiVPN crea un servidor VPN, tu enrutador necesita saber exactamente a qué dispositivo enviar los datos de la VPN. Si la dirección IP local de tu servidor VPN cambia, el enrutador redirigirá el tráfico a un destino vacío y tu VPN dejará de funcionar por completo. Una IP local estática evita que esto pase.
+    --backtitle "Iniciando interfaz de red" \
+    --title "IP Estática Necesaria" \
+    --msgbox "PiVPN es un SERVIDOR, por lo que necesita una DIRECCIÓN IP ESTÁTICA \
+para funcionar correctamente.
 
-En la siguiente sección, puedes elegir usar la configuración de red actual por (DHCP) o editarla manualmente." "${r}" "${c}"
+En la siguiente sección, puedes elegir usar la configuración de red actual \
+(DHCP) o editarla manualmente." "${r}" "${c}"
 }
-
-
 
 chooseInterface() {
   # Encontrar interfaces y permitir al usuario elegir una
@@ -1043,8 +1043,8 @@ staticIpNotSupported() {
   # Si estamos en Ubuntu, entonces necesitan haber configurado previamente su red,
   # así que simplemente usa lo que tienes.
   whiptail \
-    --backtitle "INFORMACIÓN DE IP" \
-    --title "Información de IP" --ok-button "Aceptar" \
+    --backtitle "Información de IP" \
+    --title "Información de IP" \
     --msgbox "Dado que creemos que no estás usando Raspberry Pi OS, no \
 configuraremos una IP estática por ti.
 Si estás en Amazon, de todos modos no puedes configurar una IP estática. Solo \
@@ -1124,11 +1124,14 @@ askforcedipv6route() {
   fi
 
   if whiptail \
-    --backtitle "CONFIGURACIÓN DE PRIVACIDAD" \
-    --title "Filtración de IPv6" --yes-button "Sí" \ --no-button "No" \
-    --yesno "Aunque este servidor no parece tener una conexión IPv6 en funcionamiento o IPv6 se deshabilitó a propósito, todavía se recomienda forzar todas las conexiones IPv6 por la VPN.
-	
-Esto evitará que el cliente evite el túnel y filtre su dirección IPv6 real a los servidores, aunque podría causar que el cliente tenga una respuesta lenta al navegar por la web en redes IPv6.
+    --backtitle "Configuración de privacidad" \
+    --title "Filtración de IPv6" \
+    --yesno "Aunque este servidor no parece tener una conexión IPv6 \
+en funcionamiento o IPv6 se deshabilitó a propósito, todavía se \
+recomienda forzar todas las conexiones IPv6 por la VPN.\\n\\nEsto \
+evitará que el cliente evite el túnel y filtre su IPv6 a servidores, \
+aunque podría causar que el cliente tenga una respuesta lenta al \
+navegar por la web en redes IPv6.
 
 ¿Quieres forzar el enrutamiento de IPv6 para bloquear la filtración?" "${r}" "${c}"; then
     pivpnforceipv6route=1
@@ -1138,9 +1141,6 @@ Esto evitará que el cliente evite el túnel y filtre su dirección IPv6 real a 
 
   echo "pivpnforceipv6route=${pivpnforceipv6route}" >> "${tempsetupVarsFile}"
 }
-
-
-
 
 getStaticIPv4Settings() {
   # Encontrar la IP de la puerta de enlace utilizada para enrutar al mundo exterior
