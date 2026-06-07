@@ -103,7 +103,7 @@ r=$((r < 20 ? 20 : r))
 c=$((c < 70 ? 70 : c))
 
 # Sobrescribir la configuración de localización para que la salida original se mantenga (C).
-export LC_ALL=C
+#export LC_ALL=C
 
 main() {
   # Comprobaciones y configuraciones previas a la instalación
