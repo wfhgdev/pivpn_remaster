@@ -1463,12 +1463,12 @@ chooseUser() {
     return
   fi
 
-  # Explicar el usuario local
+  # Explicar el usuario local en el S.O.
   whiptail \
     --msgbox \
-    --backtitle "Analizando la lista de usuarios" \
-    --title "Usuarios locales" --ok-button "Aceptar" \
-    "Elige un usuario local que contendrá tus configuraciones ovpn." \
+    --backtitle "Analizando la lista de usuarios en el S.O." \
+    --title "Usuarios locales en el Sistema Operativo" --ok-button "Aceptar" \
+    "Elige un usuario local que contendrá tus configuraciones OpenVPN (.ovpn) o WireGuard (.conf)." \
     "${r}" \
     "${c}"
   # Primero, verifiquemos si hay un usuario disponible.
