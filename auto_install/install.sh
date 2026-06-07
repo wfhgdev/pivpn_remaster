@@ -851,14 +851,14 @@ En lugar de tener que instalar y configurar desde cero los complicados archivos 
 
   # Explicar la necesidad de una dirección estática
   whiptail \
-    --backtitle "Iniciando interfaz de red" \
-    --title "IP Estática Necesaria" \
-    --msgbox "PiVPN es un SERVIDOR, por lo que necesita una DIRECCIÓN IP ESTÁTICA \
-para funcionar correctamente.
+    --backtitle "INICIANDO INTERFAZ DE RED" \
+    --title "IP Local Estática Necesaria" --ok-button "Aceptar" --scrolltext \
+    --msgbox "PiVPN crea un servidor VPN, tu enrutador necesita saber exactamente a qué dispositivo enviar los datos de la VPN. Si la dirección IP local de tu servidor VPN cambia, el enrutador redirigirá el tráfico a un destino vacío y tu VPN dejará de funcionar por completo. Una IP local estática evita que esto pase.
 
-En la siguiente sección, puedes elegir usar la configuración de red actual \
-(DHCP) o editarla manualmente." "${r}" "${c}"
+En la siguiente sección, puedes elegir usar la configuración de red actual por (DHCP) o editarla manualmente." "${r}" "${c}"
 }
+
+
 
 chooseInterface() {
   # Encontrar interfaces y permitir al usuario elegir una
