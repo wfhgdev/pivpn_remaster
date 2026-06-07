@@ -38,7 +38,7 @@ CHECK_PKG_INSTALLED='dpkg-query -s'
 
 # Dependencias requeridas por el script,
 # independientemente del protocolo VPN elegido
-BASE_DEPS=(git tar curl grep bind9-dnsutils grepcidr whiptail net-tools)
+BASE_DEPS=(git tar curl grep bind9-dnsutils grepcidr  net-tools)
 BASE_DEPS+=(bsdmainutils bash-completion)
 
 BASE_DEPS_ALPINE=(git grep bind-tools newt net-tools bash-completion coreutils)
@@ -257,7 +257,7 @@ flagsCheck() {
 unattendedCheck() {
   if [[ "${runUnattended}" == 'true' ]]; then
     echo -n "::: --unattended pasado al script de instalación, "
-    echo "no se mostrarán diálogos de whiptail"
+    echo "no se mostrarán diálogos de "
 
     if [[ -z "${unattendedConfig}" ]]; then
       err "::: No se ha pasado ningún archivo de configuración"
@@ -409,9 +409,9 @@ noOSSupport() {
 
   whiptail \
     --backtitle "SISTEMA OPERATIVO NO VÁLIDO DETECTADO" \
-    --title "Sistema Operativo no válido" \
+    --title "Sistema Operativo no válido" --ok-button "Aceptar" \
     --msgbox "No hemos podido detectar un Sistema Operativo compatible.
-Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
+Actualmente este instalador soporta RaspberryPi OS, Debian y Ubuntu.
 Para más detalles, consulta nuestra documentación en \
 https://github.com/pivpn/pivpn/wiki" "${r}" "${c}"
   exit 1
