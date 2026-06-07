@@ -335,7 +335,7 @@ Por favor, elige entre las siguientes opciones \
     "${opt3a}" "${opt3b}" \
     3>&2 2>&1 1>&3)" \
     || {
-      err "::: Cancelar seleccionado. Saliendo"
+      err "::: Cancelar ha sido seleccionado. Saliendo"
       exit 1
     }
 
@@ -403,15 +403,15 @@ noOSSupport() {
   if [[ "${runUnattended}" == 'true' ]]; then
     err "::: Sistema Operativo no válido detectado"
     err "::: No hemos podido detectar un Sistema Operativo compatible."
-    err "::: Actualmente este instalador soporta RaspberryPi OS, Debian y Ubuntu."
+    err "::: Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu."
     exit 1
   fi
 
   whiptail \
     --backtitle "SISTEMA OPERATIVO NO VÁLIDO DETECTADO" \
-    --title "Sistema Operativo no válido" \
+    --title "Sistema Operativo no válido" --ok-button "Aceptar" \
     --msgbox "No hemos podido detectar un Sistema Operativo compatible.
-Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
+Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
 Para más detalles, consulta nuestra documentación en \
 https://github.com/pivpn/pivpn/wiki" "${r}" "${c}"
   exit 1
@@ -428,13 +428,13 @@ maybeOSSupport() {
   if whiptail \
     --backtitle "Sistema Operativo No Probado" \
     --title "Sistema Operativo No Probado" \
-    --yesno "Estás en un S.O. que no hemos probado pero podría funcionar.  
-Actualmente este instalador soporta Raspbian, Debian y Ubuntu.
+    --yesno "Estás en un S.O. que no hemos probado pero PODRÍA funcionar.  
+Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
 Para más detalles sobre los S.O. compatibles consulta nuestra
 documentación en https://github.com/pivpn/pivpn/wiki
 ¿Te gustaría continuar de todos modos?" "${r}" "${c}"; then
-    echo "::: No se detectó un Sistema Operativo perfectamente compatible pero,"
-    echo -n "::: Continuando la instalación bajo el propio "
+    echo "::: No se detectó un Sistema Operativo perfectamente compatible pero"
+    echo -n "::: continua la instalación bajo el propio "
     echo "riesgo del usuario..."
   else
     err "::: Saliendo debido a un Sistema Operativo no probado"
