@@ -3055,11 +3055,11 @@ y la clave HMAC se generarán ahora." \
     else
       whiptail \
         --msgbox \
-        --backtitle "Configurar OpenVPN" \
-        --title "Información del Servidor" --ok-button "Aceptar" \
-        "La clave del servidor y la clave HMAC se generarán ahora." \
-        "${r}" \
-        "${c}"
+  --backtitle "Configuración de Seguridad" \
+  --title "Generación de Llaves Criptográficas" --ok-button "Continuar" \
+  "El instalador procederá a generar las llaves de cifrado del servidor y la firma de seguridad HMAC. 
+
+Este proceso es automático y garantiza que tu conexión VPN sea privada y segura. Por favor, espera un momento mientras se completan las operaciones criptográficas." "${r}" "${c}"
     fi
   fi
 
@@ -3734,23 +3734,25 @@ askUnattendedUpgrades() {
 
   whiptail \
     --msgbox \
-    --backtitle "Actualizaciones de Seguridad" \
-    --title "Actualizaciones Desatendidas" --ok-button "Aceptar" \
-    "Dado que este servidor tendrá al menos un puerto abierto a Internet, \
-se recomienda que habilites las actualizaciones desatendidas (unattended-upgrades).
-Esta función verificará diariamente solo las actualizaciones de paquetes de seguridad y las \
-aplicará cuando sea necesario.
-NO reiniciará automáticamente el servidor, por lo que para aplicar completamente algunas actualizaciones \
-deberás reiniciar periódicamente." \
-    "${r}" \
-    "${c}"
+  --backtitle "Mantenimiento y Seguridad" \
+  --title "Actualizaciones de Seguridad Automáticas" --ok-button "Entendido" \
+  "Para proteger tu servidor frente a vulnerabilidades, el asistente configurará el servicio 'unattended-upgrades'.
+
+Esta herramienta permite que el sistema instale automáticamente parches de seguridad críticos de forma diaria. 
+
+Nota importante: 
+• Este proceso solo aplica actualizaciones de seguridad y nunca forzará un reinicio del sistema.
+• Te recomendamos reiniciar el servidor periódicamente para asegurar que todos los parches aplicados se carguen correctamente." "${r}" "${c}"
 
   if whiptail \
-    --backtitle "Actualizaciones de Seguridad" \
-    --title "Actualizaciones Desatendidas" --yes-button "Sí" --no-button "No" \
-    --yesno \
-    "¿Deseas habilitar las actualizaciones desatendidas \
-de parches de seguridad en este servidor?" \
+    --backtitle "Mantenimiento y Seguridad" \
+  --title "Actualizaciones de Seguridad Automáticas" \
+  --yes-button "Habilitar (Recomendado)" --no-button "Omitir" \
+  --yesno "Mantener el servidor protegido es fundamental. Al habilitar esta opción, el sistema instalará diariamente, de forma desatendida y segura, los parches de seguridad críticos para tu sistema operativo.
+
+Esta función no requiere intervención humana y ayuda a prevenir vulnerabilidades.
+
+¿Deseas activar las actualizaciones automáticas de seguridad?" \
     "${r}" \
     "${c}"; then
     UNATTUPG=1
