@@ -1267,13 +1267,14 @@ getStaticIPv4Settings() {
   else
     # Preguntar si el usuario desea usar las configuraciones de DHCP como su IP local estática
     if whiptail \
-      --backtitle "Calibrando la interfaz de red" \
-      --title "Dirección IP estática" --yes-button "Sí" --no-button "No" \
-      --yesno "¿Deseas usar tus configuraciones de red actuales como una dirección \
-IP local estática?
+      --backtitle "Configuración de la Interfaz de Red" \
+      --title "Confirmación de IP Estática" --yes-button "Confirmar y Usar" --no-button "Modificar IP" \
+      --yesno "Has elegido configurar una IP estática de forma manual. 
 
-				Dirección IP:    ${CurrentIPv4addr}
-				Puerta de enlace:       ${CurrentIPv4gw}" "${r}" "${c}"; then
+¿Deseas adoptar los parámetros de red actuales como tu IP fija definitiva o prefieres modificarlos?
+
+    • Dirección IP:       ${CurrentIPv4addr}
+    • Puerta de enlace:   ${CurrentIPv4gw}" "${r}" "${c}"; then
       IPv4addr="${CurrentIPv4addr}"
       IPv4gw="${CurrentIPv4gw}"
 
@@ -1305,7 +1306,7 @@ Si ya has tomado alguna de estas medidas en tu enrutador, puedes continuar sin p
         until [[ "${IPv4AddrValid}" == 'true' ]]; do
           # Solicitar la dirección IPv4
           if IPv4addr="$(whiptail \
-            --backtitle "Calibrando la interfaz de red" \
+            --backtitle "Configurando la interfaz de red" \
             --title "Dirección IPv4" \
             --inputbox "Introduce la dirección \
 IPv4 deseada" "${r}" "${c}" "${CurrentIPv4addr}" \
