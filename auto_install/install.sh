@@ -1366,13 +1366,14 @@ Ejemplo típico: 192.168.1.1" "${r}" "${c}"
         done
 
         # Dar al usuario la oportunidad de revisar sus configuraciones antes de continuar
+        # CAMBIO: Se transformó el cuadro de verificación final para que sea una confirmación formal y limpia de los datos recolectados (Gemini)
         if whiptail \
-          --backtitle "Calibrando la interfaz de red" \
-          --title "Dirección IP estática" --yes-button "Sí" --no-button "No" \
-          --yesno "¿Son correctas estas configuraciones?
+          --backtitle "Configuración Manual de la Interfaz de Red" \
+          --title "Revisión de Parámetros Fijos" --yes-button "Confirmar y Aplicar" --no-button "Modificar Datos" \
+          --yesno "¿Son correctos los datos de red que has configurado para el servidor?
 
-						Dirección IP:    ${IPv4addr}
-						Puerta de enlace:       ${IPv4gw}" "${r}" "${c}"; then
+					• Dirección IPv4 (CIDR):  ${IPv4addr}
+					• Puerta de enlace:       ${IPv4gw}" "${r}" "${c}"; then
           # Si las configuraciones son correctas, entonces necesitamos establecer la pivpnIP
           echo "IPv4addr=${IPv4addr}" >> "${tempsetupVarsFile}"
           echo "IPv4gw=${IPv4gw}" >> "${tempsetupVarsFile}"
