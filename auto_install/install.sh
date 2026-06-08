@@ -1336,24 +1336,25 @@ Ejemplo correcto: 192.168.1.150/24
 
         until [[ "${IPv4gwValid}" == 'true' ]]; do
           # Solicitar la puerta de enlace
-          if IPv4gw="$(whiptail \
-            --backtitle "Calibrando la interfaz de red" \
-            --title "Puerta de enlace IPv4 (enrutador)" \
-            --inputbox "Introduce la puerta de enlace predeterminada IPv4 \
-deseada" "${r}" "${c}" "${CurrentIPv4gw}" \
+          # CAMBIO: Se pulió el texto de entrada para la puerta de enlace, aclarando que corresponde a la IP local del router (Gemini)
+      if IPv4gw="$(whiptail \
+        --backtitle "Configuración Manual de la Interfaz de Red" \
+        --title "Puerta de Enlace (Router)" --ok-button "Guardar" --cancel-button "Cancelar" \
+        --inputbox "Introduce la dirección IP de tu puerta de enlace predeterminada (la IP local de tu router)." "${r}" "${c}" "${CurrentIPv4gw}" \
             3>&1 1>&2 2>&3)"; then
             if validIP "${IPv4gw}"; then
               echo "::: Tu puerta de enlace IPv4 estática:    ${IPv4gw}"
               IPv4gwValid=true
             else
+              # CAMBIO: Se optimizó el mensaje de error para dar una guía clara con un ejemplo típico de red doméstica (Gemini)
               whiptail \
-                --backtitle "Calibrando la interfaz de red" \
-                --title "Puerta de enlace IPv4 (enrutador)" --ok-button "Aceptar" \
-                --msgbox "Has introducido una IP de puerta de enlace no válida: ${IPv4gw}
+                --backtitle "Configuración Manual de la Interfaz de Red" \
+                --title "Error: Puerta de Enlace No Válida" --ok-button "Corregir" \
+                --msgbox "La dirección IP de la puerta de enlace no es válida: ${IPv4gw}
 
-Por favor, introduce la dirección IP de tu puerta de enlace (enrutador), ejemplo: 192.168.23.1
+Por favor, introduce una dirección IP estándar sin máscara de red.
 
-Si no estás seguro, simplemente mantén la opción predeterminada." "${r}" "${c}"
+Ejemplo típico: 192.168.1.1" "${r}" "${c}"
               echo "::: Puerta de enlace IPv4 no válida:    ${IPv4gw}"
               IPv4gwValid=false
             fi
