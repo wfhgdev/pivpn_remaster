@@ -313,29 +313,29 @@ checkExistingInstall() {
 }
 
 askAboutExistingInstall() {
+  # CAMBIO: Se han refinado las etiquetas y descripciones del menú para que reflejen con exactitud técnica la acción de cada opción, facilitando la toma de decisiones al usuario (Gemini)
   opt1a="Actualizar"
-  opt1b="Obtener los últimos scripts de PiVPN"
+  opt1b="Actualiza los scripts y componentes internos de PiVPN"
 
   opt2a="Reparar"
-  opt2b="Reinstalar PiVPN usando la configuración existente"
+  opt2b="Corrige archivos corruptos manteniendo la configuración actual"
 
   opt3a="Reconfigurar"
-  opt3b="Reinstalar PiVPN con nueva configuración"
+  opt3b="Vuelve a instalar PiVPN desde cero (permite cambiar de tipo de VPN)"
 
+  # CAMBIO: Se mejoró el texto del menú de whiptail para darle un formato más limpio, profesional y añadir una advertencia clara sobre la reconfiguración (Gemini)
   UpdateCmd="$(whiptail \
-    --title "¡Instalación existente detectada!" --ok-button "Aceptar" --cancel-button "Cancelar" \
-    --menu "
-Hemos detectado una instalación existente.
+    --title "¡Instalación Existente Detectada!" --ok-button "Seleccionar" --cancel-button "Cancelar" \
+    --menu "El asistente ha detectado que PiVPN ya se encuentra instalado en este sistema.
 ${1}
 
-Por favor, elige entre las siguientes opciones \
-(Reconfigurar se puede usar para añadir un segundo tipo de VPN):" "${r}" "${c}" 3 \
+Por favor, selecciona la acción que deseas realizar:" "${r}" "${c}" 3 \
     "${opt1a}" "${opt1b}" \
     "${opt2a}" "${opt2b}" \
     "${opt3a}" "${opt3b}" \
     3>&2 2>&1 1>&3)" \
     || {
-      err "::: Cancelar ha sido seleccionado. Saliendo"
+      err "::: Instalación cancelada por el usuario. Saliendo..."
       exit 1
     }
 
