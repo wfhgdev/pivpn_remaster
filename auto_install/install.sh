@@ -2111,7 +2111,7 @@ askAboutCustomizing() {
       --defaultno \
       --yesno "PiVPN utiliza las siguientes configuraciones que creemos que son buenas \
 por defecto para la mayoría de los usuarios, si deseas la configuracion recomendada elige Continuar. \
-Sin embargo, para mantener la flexibilidad, sinecesitas personalizarlas, elige Cambiar.
+Sin embargo, para mantener la flexibilidad, si necesitas personalizarlas, elige Cambiar.
 
 * Protocolo UDP o TCP: UDP
 * Dominio de búsqueda personalizado para el campo DNS: Ninguno
