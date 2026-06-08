@@ -480,10 +480,12 @@ checkHostname() {
     until [[ "${#host_name}" -le 28 ]] \
       && [[ "${host_name}" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{1,28}$ ]]; do
       host_name="$(whiptail \
-        --title "Nombre de host demasiado largo" --ok-button "Aceptar" --cancel-button "Cancelar" \
-        --inputbox "Tu nombre de host es demasiado largo.
-Introduce un nuevo nombre de host con menos de 28 caracteres
-No se permiten caracteres especiales." "${r}" "${c}" \
+        --title "Ajuste del Nombre de Host" --ok-button "Guardar" --cancel-button "Cancelar" \
+        --inputbox "El nombre actual de este equipo excede el límite permitido para configurar la VPN. Por favor, introduce uno nuevo:
+
+Requisitos:
+• Máximo 28 caracteres de longitud.
+• Solo letras, números y guiones (sin espacios ni caracteres especiales)." "${r}" "${c}" \
         3>&1 1>&2 2>&3)"
       ${SUDO} hostnamectl set-hostname "${host_name}"
 
