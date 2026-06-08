@@ -318,10 +318,10 @@ askAboutExistingInstall() {
   opt1b="Actualiza los scripts y componentes internos de PiVPN"
 
   opt2a="Reparar"
-  opt2b="Corrige archivos corruptos manteniendo la configuración actual"
+  opt2b="Corrige archivos corruptos, manteniene configuración actual"
 
   opt3a="Reconfigurar"
-  opt3b="Vuelve a instalar PiVPN desde cero (permite cambiar de tipo de VPN)"
+  opt3b="Vuelve a instalar PiVPN desde cero o cambiar tipo de VPN)"
 
   # CAMBIO: Se mejoró el texto del menú de whiptail para darle un formato más limpio, profesional y añadir una advertencia clara sobre la reconfiguración ()
   UpdateCmd="$(whiptail \
