@@ -798,7 +798,7 @@ installDependentPackages() {
   declare -a argArray1=("${!1}")
 
   for i in "${argArray1[@]}"; do
-    echo -n ":::    Comprobando ${i}..."
+    echo -n ":::    Dependencia: ${i}..."
 
     if [[ "${PKG_MANAGER}" == 'apt-get' ]]; then
       if dpkg-query -W -f='${Status}' "${i}" 2> /dev/null \
@@ -812,9 +812,9 @@ installDependentPackages() {
       fi
     elif [[ "${PKG_MANAGER}" == 'apk' ]]; then
       if eval "${SUDO} ${CHECK_PKG_INSTALLED} ${i}" &> /dev/null; then
-        echo " ¡ya instalado!"
+        echo "[Detectada]"
       else
-        echo " ¡no instalado!"
+        echo "[No detectada - Marcada para instalar]"
         # Añadir este paquete a la lista de paquetes en el arreglo de argumentos que
         # necesitan ser instalados
         TO_INSTALL+=("${i}")
