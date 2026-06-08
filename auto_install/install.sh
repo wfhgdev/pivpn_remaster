@@ -2940,7 +2940,7 @@ confOpenVPN() {
 
   # Hacer copia de seguridad de la carpeta openvpn
   OPENVPN_BACKUP="openvpn_$(date +%Y-%m-%d-%H%M%S).tar.gz"
-  echo "::: Haciendo copia de seguridad de la carpeta openvpn en /etc/${OPENVPN_BACKUP}"
+  echo "::: Generando respaldo de la configuración anterior en /etc/${OPENVPN_BACKUP}..."
   CURRENT_UMASK="$(umask)"
   umask 0077
   ${SUDO} tar -czf "/etc/${OPENVPN_BACKUP}" /etc/openvpn &> /dev/null
@@ -3271,7 +3271,7 @@ confWireGuard() {
     if [[ -n "$(${SUDO} ls -A /etc/wireguard)" ]]; then
       # Hacer copia de seguridad de la carpeta wireguard
       WIREGUARD_BACKUP="wireguard_$(date +%Y-%m-%d-%H%M%S).tar.gz"
-      echo "::: Haciendo copia de seguridad de la carpeta wireguard en /etc/${WIREGUARD_BACKUP}"
+      echo "::: Generando respaldo de la configuración anterior en /etc/${WIREGUARD_BACKUP}..."
       CURRENT_UMASK="$(umask)"
       umask 0077
       ${SUDO} tar -czf "/etc/${WIREGUARD_BACKUP}" /etc/wireguard &> /dev/null
@@ -3910,11 +3910,11 @@ displayFinalMessage() {
     echo "::: Ahora ejecuta 'pivpn add' para crear los perfiles de los clientes."
     echo "::: ¡Ejecuta 'pivpn help' para ver qué más puedes hacer!"
     echo
-    echo -n "::: Si te encuentras con algún problema, por favor lee toda nuestra documentación "
-    echo "cuidadosamente."
-    echo "::: Todas las publicaciones o informes de errores incompletos serán ignorados o eliminados."
+    echo -n "::: Si encuentras alguna dificultad, por favor consulta la documentación "
+    echo "o abre un reporte detallado en nuestro repositorio."
+    echo "::: (https://github.com/wfhgdev/pivpn_spanish)"
     echo
-    echo "::: Gracias por usar PiVPN."
+    echo "::: Gracias por usar PiVPN_Spanish."
     echo "::: Se recomienda encarecidamente reiniciar después de la instalación."
     return
   fi
