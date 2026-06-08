@@ -437,29 +437,36 @@ https://github.com/wfhgdev/pivpn_spanish" "${r}" "${c}"
 
 maybeOSSupport() {
   if [[ "${runUnattended}" == 'true' ]]; then
-    echo "::: Sistema Operativo no compatible"
-    echo -n "::: Estás en un S.O que no hemos probado pero podría funcionar, "
-    echo "continuando de todos modos..."
+    echo "::: Sistema Operativo no verificado oficialmente."
+    echo -n "::: Estás en un entorno que no ha sido probado exhaustivamente, "
+    echo "continuando bajo el propio riesgo del usuario..."
     return
   fi
 
+  # CAMBIO: Se ha mejorado la estética de los títulos para evitar repeticiones. El texto de la advertencia ahora es más claro, utiliza viñetas para listar los sistemas soportados nativamente y actualiza el enlace hacia tu fork de traducción (Gemini)
   if whiptail \
-    --backtitle "Sistema Operativo No Probado" \
-    --title "Sistema Operativo No Probado" --yes-button "Sí" --no-button "No" \
-    --yesno "Estás en un S.O. que no hemos probado pero PODRÍA funcionar.  
-Actualmente este instalador soporta Raspberry Pi OS, Debian y Ubuntu.
-Para más detalles sobre los S.O. compatibles consulta nuestra
-documentación en https://github.com/pivpn/pivpn/wiki
+    --backtitle "Verificación de Compatibilidad" \
+    --title "Distribución No Verificada Oficialmente" --yes-button "Continuar" --no-button "Salir" \
+    --yesno "El asistente ha detectado una distribución que no forma parte de los entornos de prueba oficiales de este script.
 
-¿Te gustaría continuar de todos modos?" "${r}" "${c}"; then
-    echo "::: No se detectó un Sistema Operativo perfectamente compatible pero"
-    echo -n "::: continua la instalación bajo el propio "
-    echo "riesgo del usuario..."
+Nativamente, este instalador está optimizado para:
+• Raspberry Pi OS
+• Debian Linux
+• Ubuntu Server
+
+El script puede intentar continuar con la instalación, pero podrían surgir comportamientos inesperados o incompatibilidades con ciertos paquetes de red. Para más detalles, puedes revisar el repositorio en:
+https://github.com/wfhgdev/pivpn_spanish
+
+¿Deseas continuar con la instalación bajo tu propio riesgo?" "${r}" "${c}"; then
+    echo "::: Advertencia de Sistema Operativo ignorada por el usuario."
+    echo -n "::: Continuando la instalación en un entorno experimental "
+    echo "bajo responsabilidad del usuario..."
   else
-    err "::: Saliendo debido a un Sistema Operativo no probado"
+    err "::: Instalación abortada por el usuario debido a una distribución no verificada."
     exit 1
   fi
 }
+
 checkHostname() {
   # Comprueba la longitud del nombre de host
   host_name="$(hostname -s)"
