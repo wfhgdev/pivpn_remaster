@@ -1495,11 +1495,11 @@ chooseUser() {
   # Explicar el usuario local en el S.O.
   whiptail \
     --msgbox \
-    --backtitle "Analizando la lista de usuarios en el S.O." \
-    --title "Usuarios locales en el Sistema Operativo" --ok-button "Aceptar" \
-    "Elige un usuario local que contendrá tus configuraciones OpenVPN (.ovpn) o WireGuard (.conf)." \
-    "${r}" \
-    "${c}"
+    --backtitle "Gestión de Usuarios del Sistema" \
+    --title "Perfil de Almacenamiento VPN" --ok-button "Entendido" \
+    --msgbox "El instalador necesita asociar los perfiles de los clientes VPN (archivos .ovpn o .conf) a un usuario del sistema que no sea 'root'.
+
+A continuación, selecciona de la lista el usuario local que administrará estas configuraciones." "${r}" "${c}"
   # Primero, verifiquemos si hay un usuario disponible.
   numUsers="$(awk -F ':' \
     'BEGIN {count=0} $3>=1000 && $3<=60000 { count++ } END{ print count }' \
