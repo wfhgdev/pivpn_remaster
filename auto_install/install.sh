@@ -1242,19 +1242,19 @@ getStaticIPv4Settings() {
   # Algunos usuarios reservan direcciones IP en otro servidor DHCP o en sus enrutadores,
   # preguntemos si desean realizar algún cambio en sus interfaces.
 
-  if whiptail \
-    --backtitle "Calibrando la interfaz de red" \
-    --title "Reserva DHCP" --yes-button "Sí" --no-button "No" \
+  whiptail \
+    --backtitle "Configuración de la Interfaz de Red" \
+    --title "Método de Asignación de IP" --yes-button "Mantener DHCP (Recomendado)" --no-button "Configurar Manualmente" \
     --defaultno \
-    --yesno "¿Estás usando una IP local reservada por DHCP en tu enrutador/servidor DHCP?
-Estas son tus configuraciones de red actuales:
+    --yesno "Para asegurar la estabilidad de la VPN, el servidor necesita que su IP no cambie. El asistente ha detectado los siguientes parámetros actuales:
 
-			Dirección IP:    ${CurrentIPv4addr}
-			Puerta de enlace:       ${CurrentIPv4gw}
+    • Dirección IP:       ${CurrentIPv4addr}
+    • Puerta de enlace:   ${CurrentIPv4gw}
 
-Sí: Seguir usando la IP local reservada DHCP
-No: Configurar una dirección IP Local Estática
-¿No sabes qué es una IP local reservada DHCP? Responde No." "${r}" "${c}"; then
+¿Tienes esta IP ya reservada de forma fija en la configuración de tu enrutador (Reserva DHCP)? 
+
+• Elige 'Mantener DHCP' si ya la has reservado en tu enrutador o si no estás seguro (es la opción más segura).
+• Elige 'Configurar Manualmente' si prefieres forzar una IP estática fija escribiéndola en este sistema." "${r}" "${c}"; then
     dhcpReserv=1
 
     {
