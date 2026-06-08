@@ -350,9 +350,20 @@ distroCheck() {
   if command -v lsb_release > /dev/null; then
     PLAT="$(lsb_release -si)"
     OSCN="$(lsb_release -sc)"
+    
+    # CAMBIO: Normalizar el nombre si lsb_release devuelve "RaspberryPiOS" para mantener consistencia interna
+    if [[ "${PLAT}" == "RaspberryPiOS" ]]; then
+      PLAT="Raspberry"
+    fi
   else # de lo contrario obtener información de os-release
     . /etc/os-release
-    PLAT="$(awk '{print $1}' <<< "${NAME}")"
+    # CAMBIO: Si ID_LIKE contiene debian y es una Raspberry, o si el ID es directamente "raspbian", asignamos PLAT como Raspberry o Raspbian
+    if [[ "${ID}" == "raspbian" || "${ID}" == "raspberrypi" || "${ID_LIKE}" == *"raspbian"* ]]; then
+      PLAT="Raspberry"
+    else
+      PLAT="$(awk '{print $1}' <<< "${NAME}")"
+    fi
+    
     VER="${VERSION_ID}"
     declare -A VER_MAP=(
       ["11"]="bullseye"
@@ -371,8 +382,9 @@ distroCheck() {
     fi
   fi
 
+  # CAMBIO: Añadido "Raspberry" al caso de éxito para aceptar las cadenas de texto de las nuevas imágenes de Raspberry Pi OS
   case "${PLAT}" in
-    Debian | Raspbian | Ubuntu)
+    Debian | Raspbian | Raspberry | Ubuntu)
       case "${OSCN}" in
         bullseye | bookworm | trixie | focal | jammy | noble | resolute)
           :
@@ -689,9 +701,10 @@ preconfigurePackages() {
   #         disponible, ya que no probamos mezclar repositorios de Ubuntu.
   # caso 9: Ubuntu focal tiene soporte para wireguard
 
+  # CAMBIO: Añadido "Raspberry" a las comprobaciones de soporte de WireGuard para evitar que aborte la instalación en sistemas arm64 modernos
   if [[ "${WIREGUARD_BUILTIN}" -eq 1 && -n "${AVAILABLE_WIREGUARD}" ]] \
-    || [[ "${WIREGUARD_BUILTIN}" -eq 1 && ("${PLAT}" == 'Debian' || "${PLAT}" == 'Raspbian') ]] \
-    || [[ "${PLAT}" == 'Raspbian' ]] \
+    || [[ "${WIREGUARD_BUILTIN}" -eq 1 && ("${PLAT}" == 'Debian' || "${PLAT}" == 'Raspbian' || "${PLAT}" == 'Raspberry') ]] \
+    || [[ "${PLAT}" == 'Raspbian' || "${PLAT}" == 'Raspberry' ]] \
     || [[ "${PLAT}" == 'Alpine' && ! -f /.dockerenv && "$(uname -mrs)" =~ ^Linux\ +[0-9\.\-]+\-((lts)|(virt))\ +.*$ ]] \
     || [[ "${PLAT}" == 'Alpine' && -f /.dockerenv ]] \
     || [[ "${PLAT}" == 'Alpine' && -n "${AVAILABLE_WIREGUARD}" ]] \
@@ -1020,12 +1033,9 @@ IPv4 (presiona tecla espacio para seleccionar):" "${r}" "${c}" "${interfaceCount
 }
 
 checkStaticIpSupported() {
-  # No es realmente robusto ni correcto, en realidad deberíamos verificar dhcpcd,
-  # no la distribución, pero funciona en Raspbian y Debian.
-  if [[ "${PLAT}" == "Raspbian" ]]; then
+  # CAMBIO: Añadida compatibilidad con el nuevo PLAT="Raspberry" unificado (Gemini)
+  if [[ "${PLAT}" == "Raspbian" || "${PLAT}" == "Raspberry" ]]; then
     return 0
-  # Si estamos en 'Debian' pero el archivo raspi.list está presente,
-  # entonces realmente estamos en Raspberry Pi OS de 64 bits.
   elif [[ "${PLAT}" == "Debian" ]] \
     && [[ -s /etc/apt/sources.list.d/raspi.list || -s /etc/apt/sources.list.d/raspi.sources ]]; then
     return 0
@@ -1035,22 +1045,24 @@ checkStaticIpSupported() {
 }
 
 staticIpNotSupported() {
-  if [[ "${runUnattended}" == 'true' ]]; then
-    echo -n "::: Dado que creemos que no estás usando Raspberry Pi OS, "
-    echo "no configuraremos una IP estática por ti."
+  # Mensaje de advertencia para usuarios que no usan una Raspberry Pi
+  # ya que la configuración automática local de IP estática solo está diseñada para ese entorno.
+  if [[ "${AUTOMATED_INSTALL}" -eq 1 ]]; then
+    echo "::: El instalador no gestionará la configuración de red automática"
+    echo "::: en este sistema operativo."
     return
   fi
 
-  # Si estamos en Ubuntu, entonces necesitan haber configurado previamente su red,
-  # así que simplemente usa lo que tienes.
+  # CAMBIO: Se ha reescrito el texto del cuadro de diálogo para adaptarlo a sistemas modernos (Ubuntu/Debian genéricos) y recomendar prácticas estándar como la reserva DHCP en el router
   whiptail \
-    --backtitle "Información de IP" \
-    --title "Información de IP" --ok-button "Aceptar" \
-    --msgbox "Dado que creemos que no estás usando Raspberry Pi OS, no \
-configuraremos una IP estática por ti.
-Si estás en Amazon Web Services, no puedes configurar una IP estática. Solo asegúrate \
-de haber configurado una IP Elástica (IPv4 pública y estática) en tu instancia antes \
-de iniciar este instalador." "${r}" "${c}"
+    --backtitle "Configuración de Dirección IP" \
+    --title "Aviso de IP Estática" --ok-button "Entendido" \
+    --msgbox "Este instalador solo puede configurar IPs estáticas de forma automática en entornos basados en Raspberry Pi OS.
+
+• Si estás en un servidor en la nube (AWS, Oracle, Google Cloud, etc.), tu proveedor ya gestiona la IP interna y no necesitas hacer nada aquí.
+• Si estás en un servidor local (Ubuntu Server, Debian, Proxmox), te recomendamos encarecidamente asignar una IP fija a esta máquina mediante una 'Reserva DHCP' en la configuración de tu enrutador.
+
+Si prefieres hacerlo manualmente en el sistema operativo, asegúrate de configurar Netplan o /etc/network/interfaces antes de poner el servidor en producción." "${r}" "${c}"
 }
 
 validIP() {
