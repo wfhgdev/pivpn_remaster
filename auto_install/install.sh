@@ -3939,7 +3939,7 @@ Comandos útiles para empezar:
 ¿Encontraste algún problema? 
 Por favor, revisa nuestra documentación oficial antes de reportar un error. Esto nos ayuda a ofrecerte un mejor soporte y a mantener la comunidad organizada.
 
-Gracias por confiar en PiVPN." "${r}" "${c}"
+Gracias por confiar en PiVPN Spanish." "${r}" "${c}"
 
   if whiptail \
     --title "Reiniciar" \
