@@ -856,21 +856,21 @@ welcomeDialogs() {
     return
   fi
 
-  # Mostrar el diálogo de bienvenida
+  # CAMBIO: Se ha reestructurado el mensaje de bienvenida para que sea más directo, estético y use un tono profesional de bienvenida al asistente en español (Gemini)
   whiptail \
-    --backtitle "Bienvenido" \
-    --title "Asistente de instalación PiVPN en Español" --ok-button "Aceptar" \
-    --msgbox "PiVPN es un conjunto de herramientas de código abierto diseñado para simplificar la instalación y gestión de un servidor OpenVPN o WireGuard en una placa Raspberry Pi, Mini PC o en cualquier equipo basado en Linux Debian/Ubuntu. En lugar de tener que instalar y configurar desde cero los complicados archivos de configuración, PiVPN utiliza un asistente interactivo en la terminal." "${r}" "${c}"
+    --backtitle "Asistente de Instalación PiVPN" \
+    --title "Bienvenido a PiVPN en Español" --ok-button "Comenzar" \
+    --msgbox "Este asistente interactivo simplificará la instalación y gestión de tu servidor VPN (WireGuard o OpenVPN).
 
-  # Explicar la necesidad de una dirección estática
+PiVPN automatiza las configuraciones complejas de red y seguridad, permitiéndote desplegar un servidor seguro en cuestión de minutos, ideal tanto para Raspberry Pi como para servidores locales o virtuales basados en Debian y Ubuntu." "${r}" "${c}"
+
+  # CAMBIO: Se ha pulido la explicación sobre la IP estática. Ahora aclara que la IP del servidor no debe cambiar para evitar que los clientes externos pierdan la conexión, y presenta las opciones de red de manera más clara (Gemini)
   whiptail \
-    --backtitle "Iniciando interfaz de red" \
-    --title "IP Local Estática Necesaria" --ok-button "Aceptar" \
-    --msgbox "PiVPN es un SERVIDOR, por lo que necesita una DIRECCIÓN IP LOCAL ESTÁTICA \
-para funcionar correctamente.
+    --backtitle "Configuración de Red Local" \
+    --title "Requisito: Dirección IP Fija (Estática)" --ok-button "Aceptar" \
+    --msgbox "Para que tus dispositivos puedan conectarse de forma remota, este servidor necesita una dirección IP local fija que no cambie con el tiempo.
 
-En la siguiente sección, puedes elegir usar la configuración de red actual \
-(DHCP) o editarla manualmente." "${r}" "${c}"
+A continuación, evaluaremos tu conexión de red actual. Podrás elegir mantener los parámetros que ya tienes asignados por DHCP o editarlos manualmente si lo consideras necesario." "${r}" "${c}"
 }
 
 
