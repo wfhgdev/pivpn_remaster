@@ -1465,51 +1465,78 @@ validIPAndNetmask() {
 }
 
 checkipv6uplink() {
+  # ==============================================================================
+  #         COMPROBACIÓN DE ENLACE ASCENDENTE IPv6 (UPLINK TEST)
+  # ==============================================================================
+  # Realiza una petición controlada para determinar si la red local cuenta con
+  # conectividad IPv6 real hacia el exterior antes de habilitar su configuración.
+
+  local curlv6testres
+
+  echo "::: [INFO] Comprobando la conectividad de red externa para IPv6..."
+
+  # Ejecución de sondeo IPv6 hacia un dominio de alta disponibilidad con tiempos límite estrictos
   curl \
     --max-time 3 \
     --connect-timeout 3 \
     --silent \
     -6 \
     https://google.com \
-    > /dev/null
+    > /dev/null 2>&1
   curlv6testres="$?"
 
   if [[ "${curlv6testres}" -ne 0 ]]; then
-    echo -n "::: Las conexiones de prueba IPv6 a google.com han fallado. "
-    echo -n "Deshabilitando el soporte de IPv6. "
-    echo "(La prueba de curl falló con el código: ${curlv6testres})"
+    echo "::: [AVISO] La prueba de enlace ascendente IPv6 ha fallado (Código de error curl: ${curlv6testres})."
+    echo "::: [AVISO] Deshabilitando el soporte de direccionamiento IPv6 para este despliegue."
     pivpnenableipv6=0
   else
-    echo -n "::: Conexiones de prueba IPv6 a google.com exitosas. "
-    echo "Habilitando el soporte de IPv6."
+    echo "::: [ÉXITO] Conexión de prueba IPv6 realizada correctamente. El host cuenta con salida IPv6 activa."
+    echo "::: [INFO] Habilitando el soporte de IPv6 en la configuración base del servidor."
     pivpnenableipv6=1
   fi
 }
 
 askforcedipv6route() {
+  # ==============================================================================
+  #         CONFIGURACIÓN DE ENRUTAMIENTO FORZADO IPv6 (PREVENCIÓN DE FUGAS)
+  # ==============================================================================
+  # Previene el "IPv6 Leak" en entornos donde el servidor carece de IPv6 pero los
+  # clientes operan en redes dual-stack (móviles/hogar) que sí lo utilizan.
+
+  # ------------------------------------------------------------------------------
+  # CASO 1: ENTRADA EN MODO DESATENDIDO / AUTOMATIZADO
+  # ------------------------------------------------------------------------------
   if [[ "${runUnattended}" == 'true' ]]; then
-    echo "::: Habilitar ruta IPv6 forzada sin enlace ascendente IPv6 en el servidor."
+    echo "::: [INFO] Modo desatendido activo. Aplicando directiva de enrutamiento IPv6 forzado..."
+    echo "::: [INFO] Estado de ruta IPv6 forzada asignado (pivpnforceipv6route): ${pivpnforceipv6route}"
     echo "pivpnforceipv6route=${pivpnforceipv6route}" >> "${tempsetupVarsFile}"
     return
   fi
 
-  # CAMBIO: Se ha reestructurado por completo el texto explicativo del cuadro de diálogo para aclarar el concepto de 'Fuga de IPv6' (IPv6 Leak) y los pros/contras de su activación en clientes modernos
+  # ------------------------------------------------------------------------------
+  # CASO 2: ASISTENTE INTERACTIVO (INTERFAZ WHIPTAIL)
+  # ------------------------------------------------------------------------------
+  # TRAZABILIDAD: Registro de auditoría previo al despliegue del cuadro de diálogo
+  echo "::: [INFO] Abriendo cuadro de diálogo interactivo: Mitigación de fugas IPv6..."
+
   if whiptail \
-    --backtitle "Configuración de Privacidad y Seguridad" \
-    --title "Prevención de Fugas IPv6 (IPv6 Leak)" --yes-button "Sí" --no-button "No" \
-    --yesno "Este servidor no dispone de una conexión IPv6 activa. Sin embargo, los dispositivos que se conecten a tu VPN (móviles, portátiles) podrían estar en redes que sí usen IPv6 de forma nativa.
-
-Si dejas esto desactivado, el tráfico de tus clientes podría 'fugarse' fuera del túnel seguro de la VPN y exponer su IP real al navegar por ciertas páginas web.
-
-Para evitar esto, se recomienda forzar una ruta IPv6 dentro de la VPN. Esto bloqueará las fugas de datos y mejorará la privacidad, aunque en algunas redes muy específicas podría ralentizar ligeramente la resolución de páginas web en el cliente.
-
-¿Deseas activar la protección para forzar el enrutamiento IPv6?" "${r}" "${c}"; then
+    --backtitle "Configuración de Privacidad y Seguridad - PiVPN" \
+    --title "Prevención de Fugas IPv6 (IPv6 Leak)" \
+    --yes-button "Sí, activar protección" \
+    --no-button "No, omitir protección" \
+    --yesno "Este servidor no dispone de una conexión IPv6 activa hacia internet. Sin embargo, los dispositivos remotos que se conecten a tu VPN (móviles, portátiles) podrían estar navegando desde redes locales externas que sí utilicen IPv6 de forma nativa.\n\nSi dejas esta opción desactivada, el tráfico IPv6 de tus clientes podría 'fugarse' fuera del túnel cifrado y seguro de la VPN, exponiendo su IP pública real al navegar por ciertos sitios web.\n\nPara mitigar este riesgo, se recomienda forzar una ruta IPv6 ficticia dentro del túnel. Esto bloqueará eficazmente las fugas de datos y blindará la privacidad de la conexión, aunque en redes móviles muy específicas podría generar una leve latencia al resolver dominios.\n\n¿Deseas activar la protección para forzar el enrutamiento IPv6?" \
+    "${r}" "${c}"; then
+    
     pivpnforceipv6route=1
+    echo "::: [INFO] El usuario ha activado la mitigación contra fugas de IPv6 (Ruta forzada activa)."
   else
     pivpnforceipv6route=0
+    echo "::: [AVISO] El usuario ha decidido no forzar el enrutamiento IPv6. Riesgo de fuga potencial activo."
   fi
 
+  # Persistencia del parámetro y cierre de trazabilidad del módulo
   echo "pivpnforceipv6route=${pivpnforceipv6route}" >> "${tempsetupVarsFile}"
+  echo "::: [ÉXITO] Parámetro de enrutamiento IPv6 salvado en el archivo de variables temporales."
 }
 
 getStaticIPv4Settings() {
