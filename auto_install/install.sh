@@ -3381,7 +3381,7 @@ askClientDNS() {
       --cancel-button "Cancelar" \
       --separate-output \
       --radiolist "Selecciona el servidor DNS que se inyectará en los perfiles de tus clientes VPN:\n\n(Mueve la selección con las flechas y marca tu opción con la barra espaciadora)\n\nSi deseas usar resolutores corporativos o locales privados que no estén en la lista, desplázate y selecciona 'Personalizado'." \
-      "${r:-22}" "${c:-80}" 8)
+      "${r}" "${c}" 8)
 
     local -a DNSChooseOptions=(
       "Google" "Resolución global de alta velocidad" ON
@@ -3390,7 +3390,7 @@ askClientDNS() {
       "Quad9" "Seguridad avanzada y antimalware" OFF
       "AdGuard" "Bloqueo publicidad y rastreadores" OFF
       "FamilyShield" "Filtro de protección parental" OFF
-      "PiVPN-is-local-DNS" "AdGuard o Pihole propio)" OFF
+      "PiVPN-is-local-DNS" "AdGuard Home o Pihole propio" OFF
       "Personalizado" "Introducir manualmente DNS" OFF
     )
 
@@ -3419,7 +3419,7 @@ askClientDNS() {
             --ok-button "Validar" \
             --cancel-button "Cancelar" \
             --inputbox "Introduce las direcciones IP de tus servidores DNS preferidos separadas por una coma.\n\nEjemplo válido: 1.1.1.1, 9.9.9.9" \
-            "${r:-15}" "${c:-76}" "" \
+            "${r}" "${c}" "" \
             3>&1 1>&2 2>&3)"; then
 
             # Normalización y extracción limpia eliminando espacios y tabulaciones cruzadas
@@ -3443,7 +3443,7 @@ askClientDNS() {
                 --title "Error: Estructura IP Inválida" \
                 --ok-button "Corregir datos" \
                 --msgbox "Una o ambas direcciones IP proporcionadas no cumplen el formato estándar IPv4.\n\nDatos procesados:\n  • DNS Primario: ${pivpnDNS1:-(No detectado/Vacío)}\n  • DNS Secundario: ${pivpnDNS2:-(No detectado/Vacío)}\n\nPor favor, verifica la sintaxis e inténtalo de nuevo." \
-                "${r:-16}" "${c:-72}"
+                "${r}" "${c}"
             else
               # Diálogo interactivo de confirmación y cierre del bucle
               if whiptail \
@@ -3452,7 +3452,7 @@ askClientDNS() {
                 --yes-button "Sí, aplicar" \
                 --no-button "No, modificar" \
                 --yesno "¿Deseas fijar la siguiente configuración DNS personalizada para el túnel?\n\n• Servidor Primario: ${pivpnDNS1}\n• Servidor Secundario: ${pivpnDNS2:-(Ninguno reservado)}" \
-                "${r:-15}" "${c:-74}"; then
+                "${r}" "${c}"; then
                 
                 dns_correct="true"
                 echo "::: [INFO] DNS personalizado confirmado por el usuario: Primario=${pivpnDNS1}, Secundario=${pivpnDNS2:-(Ninguno)}"
