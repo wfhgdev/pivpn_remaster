@@ -3386,12 +3386,12 @@ askClientDNS() {
     local -a DNSChooseOptions=(
       "Google" "Resolución global de alta velocidad" ON
       "CloudFlare" "Máxima privacidad y velocidad" OFF
-      "OpenDNS" "Protección web y estabilidad" OFF
+      "OpenDNS" "Protección Web y estabilidad" OFF
       "Quad9" "Seguridad avanzada y antimalware" OFF
       "AdGuard" "Bloqueo publicidad y rastreadores" OFF
-      "FamilyShield" "Filtro para protección parental" OFF
-      "PiVPN-is-local-DNS" "AdGuard, Pihole o Unbound propio)" OFF
-      "Personalizado" "Introducir manualmente DNS específicas" OFF
+      "FamilyShield" "Filtro de protección parental" OFF
+      "PiVPN-is-local-DNS" "AdGuard o Pihole propio)" OFF
+      "Personalizado" "Introducir manualmente DNS" OFF
     )
 
     if DNSchoices="$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 > /dev/tty)"; then
