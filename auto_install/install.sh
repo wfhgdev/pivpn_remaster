@@ -1363,78 +1363,105 @@ chooseInterface() {
 }
 
 checkStaticIpSupported() {
-  # CAMBIO: Añadida compatibilidad con el nuevo PLAT="Raspberry" unificado ()
+  # ==============================================================================
+  #     VERIFICACIÓN DE COMPATIBILIDAD DE CONFIGURACIÓN AUTOMÁTICA DE IP
+  # ==============================================================================
+  # Evalúa si el sistema operativo anfitrión cuenta con soporte nativo automatizado
+  # dentro del script para modificar directamente los archivos locales de red.
+
+  echo "::: [INFO] Evaluando compatibilidad de red para el entorno de la plataforma: '${PLAT}'..."
+
   if [[ "${PLAT}" == "Raspbian" || "${PLAT}" == "Raspberry" ]]; then
+    echo "::: [INFO] Entorno Raspberry Pi OS compatible detectado de forma directa."
     return 0
   elif [[ "${PLAT}" == "Debian" ]] \
     && [[ -s /etc/apt/sources.list.d/raspi.list || -s /etc/apt/sources.list.d/raspi.sources ]]; then
+    echo "::: [INFO] Sistema operativo Debian con repositorios de entorno Raspberry detectado."
     return 0
   else
+    echo "::: [AVISO] La plataforma actual '${PLAT}' no admite asignación automatizada de IP estática local."
     return 1
   fi
 }
 
 staticIpNotSupported() {
-  # Mensaje de advertencia para usuarios que no usan una Raspberry Pi
-  # ya que la configuración automática local de IP estática solo está diseñada para ese entorno.
-  if [[ "${AUTOMATED_INSTALL}" -eq 1 ]]; then
-    echo "::: El instalador no gestionará la configuración de red automática"
-    echo "::: en este sistema operativo."
+  # ==============================================================================
+  #     MANEJO DE EXCEPCIÓN: ENTIDAD DE RED NO COMPATIBLE LOCALMENTE
+  # ==============================================================================
+  
+  # Gestión de salida limpia en caso de ejecuciones automatizadas de fondo
+  if [[ "${AUTOMATED_INSTALL}" -eq 1 || "${runUnattended}" == 'true' ]]; then
+    echo "::: [AVISO] El instalador omitirá la gestión automática de direccionamiento de red."
+    echo "::: [AVISO] Razón: El sistema operativo anfitrión requiere aprovisionamiento externo de IP."
     return
   fi
 
-  # CAMBIO: Se ha reescrito el texto del cuadro de diálogo para adaptarlo a sistemas modernos (Ubuntu/Debian genéricos) y recomendar prácticas estándar como la reserva DHCP en el router
+  # TRAZABILIDAD: Despliegue de advertencia interactiva
+  echo "::: [INFO] Lanzando advertencia en pantalla sobre la gestión independiente de IP estática..."
+
+  # DIÁLOGO INTERACTIVO WHIPTAIL (Botones adaptados al español)
   whiptail \
-    --backtitle "Configuración de Dirección IP" \
-    --title "Aviso de IP Estática" --ok-button "Entendido" \
-    --msgbox "Este instalador solo puede configurar IPs estáticas de forma automática en entornos basados en Raspberry Pi OS.
+    --backtitle "Asistente de Configuración de Red - PiVPN" \
+    --title "Aviso Importante: Dirección IP Estática" \
+    --ok-button "Entendido y Continuar" \
+    --msgbox "Este instalador automático solo gestiona la asignación de archivos de IP estática de forma local en sistemas basados en Raspberry Pi OS.
 
-• Si estás en un servidor en la nube (AWS, Oracle, Google Cloud, etc.), tu proveedor ya gestiona la IP interna y no necesitas hacer nada aquí.
-• Si estás en un servidor local (Ubuntu Server, Debian, Proxmox), te recomendamos encarecidamente asignar una IP fija a esta máquina mediante una 'Reserva DHCP' en la configuración de tu enrutador.
+Recomendaciones y buenas prácticas según tu entorno actual:
+• Servidores en la Nube (AWS, Oracle Cloud, Proxmox remotos): Tu proveedor asigna y mapea la IP interna mediante su propia infraestructura de red. No alteres la configuración local.
+• Servidores Locales (Ubuntu Server, Debian puro o Máquinas Virtuales): Te recomendamos encarecidamente fijar la IP de este equipo asignando una 'Reserva DHCP' vinculada a la MAC en la consola de tu router o gateway de red.
 
-Si prefieres hacerlo manualmente en el sistema operativo, asegúrate de configurar Netplan o /etc/network/interfaces antes de poner el servidor en producción." "${r}" "${c}"
+Si decides forzar una IP fija directamente en este sistema operativo más adelante, recuerda editar adecuadamente Netplan (/etc/netplan/) o el archivo clásico /etc/network/interfaces antes de pasar este servidor a producción." "${r}" "${c}"
+
+  echo "::: [INFO] Confirmación de aviso de red registrada por el usuario."
 }
 
 validIP() {
-  local ip="${1}"
-  local stat=1
+  # ==============================================================================
+  #                      VALIDACIÓN ESTÁNDAR DE DIRECCIÓN IPv4
+  # ==============================================================================
+  # Optimización: Se utiliza BASH_REMATCH para capturar los octetos directamente.
+  # Esto elimina la manipulación de la variable interna IFS y acelera la comprobación.
+  
+  local ip_str="${1}"
+  local -a octets
 
-  if [[ "${ip}" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-    OIFS="${IFS}"
-    IFS='.'
-    read -r -a ip <<< "${ip}"
-    IFS="${OIFS}"
+  # Expresión regular estricta para formato de 4 octetos delimitados por puntos
+  if [[ "${ip_str}" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})$ ]]; then
+    # Extraer los bloques capturados por la expresión regular
+    octets=("${BASH_REMATCH[@]:1:4}")
 
-    [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 ]]
-
-    stat="$?"
+    # Evaluación aritmética de rangos válidos de red (0 a 255 por octeto)
+    if (( octets[0] <= 255 && octets[1] <= 255 && octets[2] <= 255 && octets[3] <= 255 )); then
+      return 0
+    fi
   fi
 
-  return "${stat}"
+  return 1
 }
 
 validIPAndNetmask() {
-  # shellcheck disable=SC2178
-  local ip="${1}"
-  local stat=1
+  # ==============================================================================
+  #               VALIDACIÓN DE DIRECCIÓN IPv4 BAJO NOTACIÓN CIDR
+  # ==============================================================================
+  # Solución de Bugs de Diseño: Se segmentan las variables en tipos string y array
+  # independientes, resolviendo de forma limpia las alertas ShellCheck SC2178 y SC2128.
 
-  # shellcheck disable=SC2178
-  ip="${ip/\//.}"
+  local cidr_str="${1}"
+  # Normalizar la cadena sustituyendo la barra oblicua '/' por un punto '.' para unificar la regex
+  local normalized="${cidr_str/\//.}"
+  local -a parts
 
-  # shellcheck disable=SC2128
-  if [[ "${ip}" =~ ^([0-9]{1,3}\.){4}[0-9]{1,2}$ ]]; then
-    OIFS="${IFS}"
-    IFS='.'
-    # shellcheck disable=SC2128
-    read -r -a ip <<< "${ip}"
-    IFS="${OIFS}"
+  # Expresión regular para validar 4 octetos tradicionales + 1 prefijo de subred CIDR
+  if [[ "${normalized}" =~ ^([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,3})\.([0-9]{1,2})$ ]]; then
+    parts=("${BASH_REMATCH[@]:1:5}")
 
-    [[ "${ip[0]}" -le 255 && "${ip[1]}" -le 255 && "${ip[2]}" -le 255 && "${ip[3]}" -le 255 && "${ip[4]}" -le 32 ]]
-
-    stat="$?"
+    # Validación matemática: Octetos <= 255 y máscara de subred IPv4 <= 32 bits
+    if (( parts[0] <= 255 && parts[1] <= 255 && parts[2] <= 255 && parts[3] <= 255 && parts[4] <= 32 )); then
+      return 0
+    fi
   fi
 
-  return "${stat}"
+  return 1
 }
 
 checkipv6uplink() {
