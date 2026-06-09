@@ -2686,11 +2686,13 @@ Ejemplo: midominio.com" "${r}" "${c}" \
           fi
         else
           whiptail \
-            --backtitle "Dominio Inválido" \
-            --title "Dominio Inválido" --ok-button "Aceptar" \
-            --msgbox "El dominio es inválido. Por favor, inténtalo de nuevo.
-    DOMINIO:  ${pivpnSEARCHDOMAIN}
-" "${r}" "${c}"
+            --backtitle "Configurador PiVPN" \
+            --title "Error: Dominio Inválido" --ok-button "Reintentar" \
+            --msgbox "El dominio introducido no tiene un formato válido. \
+Por favor, comprueba la sintaxis e inténtalo de nuevo.
+
+Texto detectado:
+  • Dominio: ${pivpnSEARCHDOMAIN:-(Vacío)}" "${r}" "${c}"
           DomainSettingsCorrect=false
         fi
       else
@@ -2704,28 +2706,30 @@ Ejemplo: midominio.com" "${r}" "${c}" \
 }
 
 askPublicIPOrDNS() {
-  if ! IPv4pub="$(dig +short myip.opendns.com @208.67.222.222)" \
+  # 1. Obtención optimizada de la IP pública con Timeouts
+  if ! IPv4pub="$(dig +short +time=3 +tries=1 myip.opendns.com @208.67.222.222 2>/dev/null)" \
     || ! validIP "${IPv4pub}"; then
-    err "dig falló, ahora probando con curl checkip.amazonaws.com"
+    err "dig falló o devolvió una IP inválida. Probando con curl..."
 
-    if ! IPv4pub="$(curl -sSf https://checkip.amazonaws.com)" \
+    if ! IPv4pub="$(curl -sSf --connect-timeout 4 https://checkip.amazonaws.com 2>/dev/null)" \
       || ! validIP "${IPv4pub}"; then
-      err "checkip.amazonaws.com falló, verifica tu conexión a internet/DNS"
+      err "No se pudo determinar tu IP pública. Verifica tu conexión a internet o DNS."
       exit 1
     fi
   fi
 
+  # 2. Modo de instalación desatendida (Unattended)
   if [[ "${runUnattended}" == 'true' ]]; then
     if [[ -z "${pivpnHOST}" ]]; then
-      echo "::: Sin IP o nombre de dominio, usando IP pública ${IPv4pub}"
+      echo "::: No se especificó HOST, usando IP pública detectada: ${IPv4pub}"
       pivpnHOST="${IPv4pub}"
     else
       if validIP "${pivpnHOST}"; then
-        echo "::: Usando IP pública ${pivpnHOST}"
+        echo "::: Usando IP pública configurada: ${pivpnHOST}"
       elif validDomain "${pivpnHOST}"; then
-        echo "::: Usando nombre de dominio ${pivpnHOST}"
+        echo "::: Usando nombre de dominio configurado: ${pivpnHOST}"
       else
-        err "::: ${pivpnHOST} no es una IP o nombre de dominio válido"
+        err "::: '${pivpnHOST}' no es una IP o nombre de dominio válido."
         exit 1
       fi
     fi
@@ -2734,62 +2738,84 @@ askPublicIPOrDNS() {
     return
   fi
 
-  local publicDNSCorrect
-  local publicDNSValid
+  # 3. Modo Interactivo (Inicialización explícita de variables)
+  local publicDNSCorrect=false
+  local publicDNSValid=false
 
   if METH="$(whiptail \
-    --title "IP Pública o DNS" \
-    --radiolist \
-    "¿Los clientes usarán una IP Pública o Nombre DNS para conectarse a tu servidor \
-(presiona tecla espacio para seleccionar)?" "${r}" "${c}" 2 \
-    "${IPv4pub}" "Usar esta IP pública" "ON" \
-    "DNS Entry" "Usar un DNS público" "OFF" \
+    --backtitle "Configurador PiVPN" \
+    --title "Método de Conexión" \
+    --ok-button "Seleccionar" \
+    --cancel-button "Salir" \
+    --radiolist "¿Qué método usarán los clientes para conectarse a tu servidor VPN? \
+(Usa la barra espaciadora para marcar tu opción)." "${r}" "${c}" 2 \
+    "${IPv4pub}" "Usar esta dirección IP pública detectada" "ON" \
+    "DNS Entry" "Usar un nombre de dominio (DDNS / DNS público)" "OFF" \
     3>&1 1>&2 2>&3)"; then
+
     if [[ "${METH}" == "${IPv4pub}" ]]; then
       pivpnHOST="${IPv4pub}"
     else
+      # Bucle principal de validación del dominio personalizado
       until [[ "${publicDNSCorrect}" == 'true' ]]; do
+        # Reinicio explícito del estado del bucle interno para evitar saltos lógicos
+        publicDNSValid=false
+        
         until [[ "${publicDNSValid}" == 'true' ]]; do
           if PUBLICDNS="$(whiptail \
-            --title "Configuración de PiVPN" \
-            --inputbox "¿Cuál es el nombre \
-DNS público de este Servidor?" "${r}" "${c}" \
+            --backtitle "Configurador PiVPN" \
+            --title "Configuración de Dominio" \
+            --ok-button "Continuar" \
+            --cancel-button "Cancelar" \
+            --inputbox "Introduce el nombre de dominio público o DDNS para este servidor.
+
+Ejemplo: midominio.com" "${r}" "${c}" \
             3>&1 1>&2 2>&3)"; then
+            
             if validDomain "${PUBLICDNS}"; then
               publicDNSValid=true
               pivpnHOST="${PUBLICDNS}"
             else
               whiptail \
-                --backtitle "Configuración de PiVPN" \
-                --title "Nombre DNS inválido" --ok-button "Aceptar" \
-                --msgbox "Este nombre DNS es inválido. Por favor inténtalo de nuevo.
-    Nombre DNS: ${PUBLICDNS}
-" "${r}" "${c}"
+                --backtitle "Configurador PiVPN" \
+                --title "Error: Dominio Inválido" \
+                --ok-button "Reintentar" \
+                --msgbox "El nombre DNS introducido no tiene un formato válido. \
+Por favor, comprueba la sintaxis e inténtalo de nuevo.
+
+Texto detectado:
+  • Nombre DNS: ${PUBLICDNS:-(Vacío)}" "${r}" "${c}"
               publicDNSValid=false
             fi
           else
-            err "::: Cancelación seleccionada. Saliendo..."
+            err "::: Cancelación seleccionada por el usuario. Saliendo..."
             exit 1
           fi
         done
 
+        # Pantalla de confirmación final
         if whiptail \
-          --backtitle "Configuración de PiVPN" \
-          --title "Confirmar Nombre DNS" --yes-button "Sí" --no-button "No" \
-          --yesno "¿Es correcto esto?
-Nombre DNS Público: ${PUBLICDNS}" "${r}" "${c}"; then
+          --backtitle "Configurador PiVPN" \
+          --title "Confirmar Nombre DNS" \
+          --yes-button "Confirmar" \
+          --no-button "Modificar" \
+          --yesno "¿Es correcto el dominio para tus clientes?
+
+  • DNS Público: ${PUBLICDNS}" "${r}" "${c}"; then
           publicDNSCorrect=true
         else
           publicDNSCorrect=false
-          publicDNSValid=false
+          # Al poner esto en false, obligamos a que el bucle 'until' interno vuelva a ejecutarse
+          publicDNSValid=false 
         fi
       done
     fi
   else
-    err "::: Cancelación seleccionada. Saliendo..."
+    err "::: Cancelación seleccionada por el usuario. Saliendo..."
     exit 1
   fi
 
+  # Guardar la variable final en el archivo de configuración
   echo "pivpnHOST=${pivpnHOST}" >> "${tempsetupVarsFile}"
 }
 
