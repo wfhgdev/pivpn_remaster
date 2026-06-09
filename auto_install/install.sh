@@ -871,23 +871,25 @@ notifyPackageUpdatesAvailable() {
 }
 
 preconfigurePackages() {
-  # Instalar paquetes usados por este script de instalación
-  # Si apt es más antiguo que 1.5 necesitamos instalar un paquete adicional para añadir
-  # soporte para repositorios https que se usarán más adelante
-  if [[ "${PKG_MANAGER}" == 'apt-get' ]] \
-    && [[ -f /etc/apt/sources.list ]]; then
-    INSTALLED_APT="$(apt-cache policy apt \
-      | grep -m1 'Installed: ' \
-      | grep -v '(none)' \
-      | awk '{print $2}')"
+  # TRAZABILIDAD: Registro de inicio unificado para la fase de preconfiguración
+  echo "::: [INFO] Iniciando la validación del entorno de empaquetado y dependencias..."
+  
+  local INSTALLED_APT DPKG_ARCH AVAILABLE_OPENVPN AVAILABLE_WIREGUARD down_dir
 
-    if dpkg --compare-versions "${INSTALLED_APT}" lt 1.5; then
+  # COMPROBACIÓN: Soporte HTTPS para gestores de paquetes antiguos (Apt < 1.5)
+  if [[ "${PKG_MANAGER}" == 'apt-get' ]] && [[ -f /etc/apt/sources.list ]]; then
+    # Inmunidad a localización: extrae la versión directamente de la base de datos de dpkg
+    INSTALLED_APT="$(dpkg-query -W -f='${Version}' apt 2>/dev/null)"
+
+    if [[ -n "${INSTALLED_APT}" ]] && dpkg --compare-versions "${INSTALLED_APT}" lt 1.5; then
+      echo "::: [INFO] Versión de apt antigua detectada. Añadiendo soporte para repositorios HTTPS..."
       BASE_DEPS+=("apt-transport-https")
     fi
   fi
 
-  # Configuramos IP estática solo en Raspberry Pi OS
+  # CONFIGURACIÓN: Evaluación de soporte de asignación de direccionamiento estático
   if checkStaticIpSupported; then
+    echo "::: [INFO] Validando la suite de gestión de redes del sistema anfitrión..."
     if [[ "${OSCN}" == "bullseye" ]]; then
       BASE_DEPS+=(dhcpcd5)
     else
@@ -895,104 +897,67 @@ preconfigurePackages() {
     fi
   fi
 
+  # ARQUITECTURA: Identificación de la firma de compilación binaria del sistema
   if [[ "${PKG_MANAGER}" == 'apt-get' ]]; then
     DPKG_ARCH="$(dpkg --print-architecture)"
   elif [[ "${PKG_MANAGER}" == 'apk' ]]; then
     DPKG_ARCH="$(apk --print-arch)"
   fi
 
+  # DETECCIÓN OPENVPN: Consulta optimizada de candidatos de instalación en repositorios
+  echo "::: [INFO] Comprobando disponibilidad de paquetes oficiales para OpenVPN..."
   if [[ "${PKG_MANAGER}" == 'apt-get' ]]; then
-    AVAILABLE_OPENVPN="$(apt-cache policy openvpn \
-      | grep -m1 'Candidate: ' \
-      | grep -v '(none)' \
-      | awk '{print $2}')"
+    AVAILABLE_OPENVPN="$(apt-cache policy openvpn 2>/dev/null | awk '/Candidate:/ && !/\(none\)/ {print $2}')"
   elif [[ "${PKG_MANAGER}" == 'apk' ]]; then
-    AVAILABLE_OPENVPN="$(apk search -e openvpn \
-      | sed -E -e 's/openvpn\-(.*)/\1/')"
+    AVAILABLE_OPENVPN="$(apk search -e openvpn 2>/dev/null | sed -E -e 's/openvpn\-(.*)/\1/')"
   fi
 
   OPENVPN_SUPPORT=0
   NEED_OPENVPN_REPO=0
 
-  # Requerimos OpenVPN 2.5 o posterior para soporte ECC y tls-crypt-v2. Si no está
-  # en los repositorios pero estamos ejecutando x86 Debian o Ubuntu, añadimos el repositorio oficial
-  # que proporciona el paquete actualizado.
+  # LÓGICA DE COMPATIBILIDAD: Requerimiento mínimo de OpenVPN 2.5 (Soporte ECC / tls-crypt-v2)
   if [[ "${PKG_MANAGER}" == 'apt-get' ]]; then
-    if [[ -n "${AVAILABLE_OPENVPN}" ]] \
-      && dpkg --compare-versions "${AVAILABLE_OPENVPN}" ge 2.5; then
+    if [[ -n "${AVAILABLE_OPENVPN}" ]] && dpkg --compare-versions "${AVAILABLE_OPENVPN}" ge 2.5; then
       OPENVPN_SUPPORT=1
     else
-      if [[ "${PLAT}" == "Debian" ]] \
-        || [[ "${PLAT}" == "Ubuntu" ]]; then
-        if [[ "${DPKG_ARCH}" == "amd64" ]] \
-          || [[ "${DPKG_ARCH}" == "i386" ]]; then
+      # Inyección de repositorio oficial de OpenVPN para arquitecturas x86 compatibles
+      if [[ "${PLAT}" == "Debian" ]] || [[ "${PLAT}" == "Ubuntu" ]]; then
+        if [[ "${DPKG_ARCH}" == "amd64" ]] || [[ "${DPKG_ARCH}" == "i386" ]]; then
+          echo "::: [INFO] Habilitando repositorio externo oficial de OpenVPN para obtener rama 2.5+..."
           NEED_OPENVPN_REPO=1
           OPENVPN_SUPPORT=1
-        else
-          OPENVPN_SUPPORT=0
         fi
-      else
-        OPENVPN_SUPPORT=0
       fi
     fi
   elif [[ "${PKG_MANAGER}" == 'apk' ]]; then
-    if [[ -n "${AVAILABLE_OPENVPN}" ]] \
-      && [[ "$(apk version -t "${AVAILABLE_OPENVPN}" 2.5)" == '>' ]]; then
+    if [[ -n "${AVAILABLE_OPENVPN}" ]] && [[ "$(apk version -t "${AVAILABLE_OPENVPN}" 2.5)" == '>' ]]; then
       OPENVPN_SUPPORT=1
-    else
-      OPENVPN_SUPPORT=0
     fi
   fi
 
+  # DETECCIÓN WIREGUARD: Consulta de candidatos disponibles en los repositorios locales
+  echo "::: [INFO] Comprobando disponibilidad de paquetes oficiales para WireGuard..."
   if [[ "${PKG_MANAGER}" == 'apt-get' ]]; then
-    AVAILABLE_WIREGUARD="$(apt-cache policy wireguard \
-      | grep -m1 'Candidate: ' \
-      | grep -v '(none)' \
-      | awk '{print $2}')"
+    AVAILABLE_WIREGUARD="$(apt-cache policy wireguard 2>/dev/null | awk '/Candidate:/ && !/\(none\)/ {print $2}')"
   elif [[ "${PKG_MANAGER}" == 'apk' ]]; then
-    AVAILABLE_WIREGUARD="$(apk search -e wireguard-tools \
-      | sed -E -e 's/wireguard\-tools\-(.*)/\1/')"
+    AVAILABLE_WIREGUARD="$(apk search -e wireguard-tools 2>/dev/null | sed -E -e 's/wireguard\-tools\-(.*)/\1/')"
   fi
 
   WIREGUARD_SUPPORT=0
-
-  # Si se encuentra un objeto del núcleo de wireguard y es parte de algún paquete instalado,
-  # entonces no se ha compilado mediante DKMS o manualmente (instalar a través de
-  # wireguard-dkms no hace que el módulo sea parte del paquete ya que el
-  # módulo en sí se compila en el momento de la instalación y no es parte del .deb).
-  # Fuente: https://github.com/MichaIng/DietPi/blob/7bf5e1041f3b2972d7827c48215069d1c90eee07/dietpi/dietpi-software#L1807-L1815
-  # Adicionalmente, si estamos usando algo como LXC, el núcleo del anfitrión cargará
-  # el módulo wireguard por lo que parecerá integrado desde el punto de vista del contenedor.
   WIREGUARD_BUILTIN=0
 
+  # NÚCLEO: Verificación de la presencia del módulo de WireGuard integrado en el kernel (LXC/Anfitrión)
   if [[ "${PKG_MANAGER}" == 'apt-get' ]]; then
     if dpkg-query -S '/lib/modules/*/wireguard.ko*' &> /dev/null \
       || dpkg-query -S '/usr/lib/modules/*/wireguard.ko*' &> /dev/null \
-      || modinfo wireguard 2> /dev/null \
-      | grep -q '^filename:[[:blank:]]*(builtin)$' \
+      || modinfo wireguard 2> /dev/null | grep -q '^filename:[[:blank:]]*(builtin)$' \
       || lsmod | grep -q '^wireguard'; then
       WIREGUARD_BUILTIN=1
+      echo "::: [INFO] Módulo WireGuard integrado o cargado en el kernel detectado."
     fi
   fi
 
-  # caso 1: Si el módulo está integrado y el paquete está disponible,
-  #         solo necesitamos instalar wireguard-tools.
-  # caso 2: Si el paquete no está disponible, en Debian y
-  #         Raspberry Pi OS podemos añadirlo mediante el repositorio Bullseye.
-  # caso 3: Si el módulo no está integrado, en Raspberry Pi OS conocemos
-  #         el paquete de cabeceras: raspberrypi-kernel-headers
-  # caso 4: En Alpine, el núcleo debe ser linux-lts o linux-virt
-  #         si queremos cargar el módulo del núcleo
-  # caso 5: En un Contenedor Docker Alpine, la responsabilidad de tener
-  #         un módulo WireGuard en el sistema anfitrión es del usuario
-  # caso 6: En un contenedor Alpine, wireguard-tools está disponible
-  # caso 7: En Debian (y Ubuntu), solo podemos asumir de manera fiable el
-  #         paquete de cabeceras para amd64: linux-image-amd64
-  # caso 8: En Ubuntu, adicionalmente el paquete WireGuard debe estar
-  #         disponible, ya que no probamos mezclar repositorios de Ubuntu.
-  # caso 9: Ubuntu focal tiene soporte para wireguard
-
-  # CAMBIO: Añadido "Raspberry" a las comprobaciones de soporte de WireGuard para evitar que aborte la instalación en sistemas arm64 modernos
+  # EVALUACIÓN MATRIZ WIREGUARD: Validación extendida multi-distribución (Incluye soporte arm64 moderno)
   if [[ "${WIREGUARD_BUILTIN}" -eq 1 && -n "${AVAILABLE_WIREGUARD}" ]] \
     || [[ "${WIREGUARD_BUILTIN}" -eq 1 && ("${PLAT}" == 'Debian' || "${PLAT}" == 'Raspbian' || "${PLAT}" == 'Raspberry') ]] \
     || [[ "${PLAT}" == 'Raspbian' || "${PLAT}" == 'Raspberry' ]] \
@@ -1005,67 +970,70 @@ preconfigurePackages() {
     WIREGUARD_SUPPORT=1
   fi
 
-  if [[ "${OPENVPN_SUPPORT}" -eq 0 ]] \
-    && [[ "${WIREGUARD_SUPPORT}" -eq 0 ]]; then
-    err "::: Ni OpenVPN ni WireGuard están disponibles para ser instalados por PiVPN, saliendo..."
+  # SEGURIDAD CRÍTICA: Abortar si ningún motor VPN es viable en este entorno operativo
+  if [[ "${OPENVPN_SUPPORT}" -eq 0 ]] && [[ "${WIREGUARD_SUPPORT}" -eq 0 ]]; then
+    err "Ni OpenVPN ni WireGuard se encuentran disponibles para su instalación en este sistema."
     exit 1
   fi
 
-  # si ufw está habilitado, configúralo.
-  # ejecutando como root porque a veces el ejecutable no está en el $PATH del usuario
+  # CORTAFUEGOS: Evaluación de persistencia e integración con el framework UFW
+  echo "::: [INFO] Evaluando la presencia y el estado del cortafuegos (UFW)..."
   if ${SUDO} bash -c 'command -v ufw' > /dev/null; then
     if ! ${SUDO} ufw status || ${SUDO} ufw status | grep -q inactive; then
       USING_UFW=0
     else
       USING_UFW=1
+      echo "::: [INFO] FireWall UFW activo detectado. La configuración de reglas se adaptará de forma automática."
     fi
   else
     USING_UFW=0
   fi
 
+  # DEBCONF: Automatización desatendida para confirmaciones del paquete iptables-persistent
   if [[ "${PKG_MANAGER}" == 'apt-get' ]] && [[ "${USING_UFW}" -eq 0 ]]; then
+    echo "::: [INFO] Inyectando directivas de automatización desatendida para iptables-persistent..."
     BASE_DEPS+=(iptables-persistent)
-    echo iptables-persistent iptables-persistent/autosave_v4 boolean true \
-      | ${SUDO} debconf-set-selections
-    echo iptables-persistent iptables-persistent/autosave_v6 boolean false \
-      | ${SUDO} debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v4 boolean true | ${SUDO} debconf-set-selections
+    echo iptables-persistent iptables-persistent/autosave_v6 boolean false | ${SUDO} debconf-set-selections
   fi
 
-  if [[ "${PLAT}" == 'Alpine' ]] \
-    && ! command -v grepcidr &> /dev/null; then
-    local down_dir
-    ## instalar dependencias
+  # COMPILACIÓN ESPECÍFICA (Alpine Linux): Despliegue e instalación manual de grepcidr
+  if [[ "${PLAT}" == 'Alpine' ]] && ! command -v grepcidr &> /dev/null; then
+    echo "::: [INFO] Compilando grepcidr desde el origen para compatibilidad con el entorno Alpine..."
+    
     # shellcheck disable=SC2086
     ${SUDO} ${PKG_INSTALL} build-base make curl tar
 
     if ! down_dir="$(mktemp -d)"; then
-      err "::: ¡Fallo al crear el directorio de descarga para grepcidr!"
+      err "Fallo crítico al inicializar el directorio temporal de compilación para grepcidr."
       exit 1
     fi
 
-    ## descargar binarios
-    curl -fLo "${down_dir}/master.tar.gz" \
-      https://github.com/pivpn/grepcidr/archive/master.tar.gz
-    tar -xzC "${down_dir}" -f "${down_dir}/master.tar.gz"
+    # Descarga e infraestructura de construcción en subproceso aislado
+    if curl -fLo "${down_dir}/master.tar.gz" "https://github.com/pivpn/grepcidr/archive/master.tar.gz"; then
+      tar -xzC "${down_dir}" -f "${down_dir}/master.tar.gz"
+      (
+        cd "${down_dir}/grepcidr-master" || exit 1
+        
+        # Ajuste de rutas estándar en el Makefile de compilación
+        sed -i -E -e 's/^PREFIX\=.*/PREFIX\=\/usr\nCC\=gcc/' Makefile
+        
+        make && ${SUDO} make install
 
-    (
-      cd "${down_dir}/grepcidr-master" || exit
-
-      ## personalizar binarios
-      sed -i -E -e 's/^PREFIX\=.*/PREFIX\=\/usr\nCC\=gcc/' Makefile
-
-      ## instalar
-      make
-      ${SUDO} make install
-
-      if ! command -v grepcidr &> /dev/null; then
-        err "::: ¡Fallo al compilar e instalar grepcidr!"
-        exit
-      fi
-    ) || exit 1
+        if ! command -v grepcidr &> /dev/null; then
+          err "El proceso de compilación nativa finalizó pero 'grepcidr' no responde en el PATH."
+          exit 1
+        fi
+      ) || exit 1
+    else
+      err "Fallo al descargar el archivo de código fuente comprimido de grepcidr."
+      exit 1
+    fi
   fi
 
+  # PERSISTENCIA: Almacenamiento del estado del cortafuegos en variables temporales de instalación
   echo "USING_UFW=${USING_UFW}" >> "${tempsetupVarsFile}"
+  echo "::: [ÉXITO] Análisis del entorno y preconfiguración de paquetes completada."
 }
 
 installDependentPackages() {
