@@ -763,51 +763,56 @@ spinner() {
 }
 
 verifyFreeDiskSpace() {
-  # Si el usuario instala unattended-upgrades necesitaríamos unos 60MB así que
-  # comprobaremos si hay 75MB libres
-  echo "::: Verificando el espacio libre en disco..."
+  # TRAZABILIDAD: Registro inicial para auditar el estado físico del almacenamiento del sistema
+  echo "::: [INFO] Verificando el espacio libre en disco en el directorio raíz..."
   local required_free_kilobytes=76800
   local existing_free_kilobytes
-  existing_free_kilobytes="$(df -Pk \
-    | grep -m1 '\/$' \
-    | awk '{print $4}')"
+  
+  # OPTIMIZACIÓN: Se consulta directamente el volumen raíz '/' con 'df -P' para evitar 
+  # la concatenación ineficiente y propensa a fallos de 'df | grep | awk'.
+  existing_free_kilobytes="$(df -P / 2>/dev/null | awk 'NR==2 {print $4}')"
 
-  # - Espacio libre en disco desconocido, no es un entero
-  if [[ ! "${existing_free_kilobytes}" =~ ^([0-9])+$ ]]; then
-    echo "::: ¡Espacio libre en disco desconocido!"
-    echo -n "::: No pudimos determinar el espacio libre disponible en disco "
-    echo "en este sistema."
+  # COMPROBACIÓN 1: El espacio libre en disco es desconocido o el formato no es un entero válido
+  if [[ ! "${existing_free_kilobytes}" =~ ^[0-9]+$ ]]; then
+    echo "::: [ADVERTENCIA] No se pudo determinar con precisión el espacio libre disponible en el almacenamiento."
 
     if [[ "${runUnattended}" == 'true' ]]; then
+      err "Espacio libre en disco indeterminado. Abortando instalación automática en modo desatendido por seguridad."
       exit 1
     fi
 
-    echo -n "::: Puedes continuar con la instalación, sin embargo, "
-    echo "no es recomendable."
-    echo -n "::: Si estás seguro de que quieres continuar, "
-    echo -n "escribe YES y presiona enter :: "
+    echo "::: [ADVERTENCIA] Continuar sin verificar el espacio libre puede corromper paquetes o interrumpir el despliegue."
+    echo "::: Si estás seguro de que el sistema cuenta con almacenamiento libre suficiente, escribe 'YES'."
+    echo -n "::: ¿Deseas forzar la continuidad de la instalación? (YES/no): "
     read -r response
 
     case "${response}" in
       [Yy][Ee][Ss])
-        :
+        echo "::: [ADVERTENCIA] Omisión de validación de almacenamiento forzada por el administrador."
         ;;
       *)
-        err "::: Confirmación no recibida, saliendo..."
+        err "Confirmación explícita no recibida. Abortando el instalador por razones de seguridad."
         exit 1
         ;;
     esac
-  # - Espacio libre en disco insuficiente
+
+  # COMPROBACIÓN 2: El espacio libre disponible es inferior al umbral mínimo de contingencia (75 MB)
   elif [[ "${existing_free_kilobytes}" -lt "${required_free_kilobytes}" ]]; then
-    err "::: ¡Espacio en disco insuficiente!"
-    err "::: Tu sistema parece tener poco espacio en disco. PiVPN recomienda un mínimo de ${required_free_kilobytes} KiloBytes."
-    err "::: Solo tienes ${existing_free_kilobytes} KiloBytes libres."
-    err "::: Si esta es una instalación nueva en una Raspberry Pi, es posible que necesites expandir tu disco."
-    err "::: Intenta ejecutar 'sudo raspi-config', y elige la opción 'expand file system'"
-    err "::: Después de reiniciar, vuelve a ejecutar esta instalación. (curl -sSfL https://install.pivpn.io | bash)"
-    err "Espacio libre insuficiente, saliendo..."
+    # Conversión matemática interna nativa para enriquecer el output de diagnóstico en consola
+    local req_mb=$((required_free_kilobytes / 1024))
+    local ext_mb=$((existing_free_kilobytes / 1024))
+
+    err "Espacio en disco insuficiente para garantizar una instalación estable."
+    echo "::: [DETALLES] Umbral mínimo requerido: ${required_free_kilobytes} KB (~${req_mb} MB)"
+    echo "::: [DETALLES] Almacenamiento disponible: ${existing_free_kilobytes} KB (~${ext_mb} MB)"
+    echo "::: [AYUDA] Si estás utilizando un entorno nuevo sobre Raspberry Pi OS, expande tu partición:"
+    echo ":::         Ejecuta 'sudo raspi-config' -> 'Advanced Options' -> 'Expand Filesystem'"
+    echo ":::         Reinicia el dispositivo y vuelve a lanzar este asistente de instalación."
     exit 1
   fi
+
+  # TRAZABILIDAD: Verificación exitosa del componente de almacenamiento antes de proceder a la descarga
+  echo "::: [INFO] Espacio libre en disco verificado con éxito. Capacidad suficiente garantizada."
 }
 
 updatePackageCache() {
