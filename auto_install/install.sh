@@ -2933,66 +2933,116 @@ installOpenVPN() {
 }
 
 installWireGuard() {
-  local PIVPN_DEPS
+  # ==============================================================================
+  #         INSTALACIÓN Y CONFIGURACIÓN DEL MOTOR CRIPTOGRÁFICO WIREGUARD
+  # ==============================================================================
+  # Resuelve de forma dinámica las dependencias requeridas según la distribución,
+  # gestionando el anclaje (pinning) de repositorios en ramas heredadas si es necesario,
+  # e inyectando herramientas complementarias de movilidad como qrencode.
 
-  echo -n "::: Instalando WireGuard"
-  PIVPN_DEPS=(wireguard-tools)
+  local -a PIVPN_DEPS=(wireguard-tools)
+  local platform="${PLAT:-Desconocida}"
+  local builtin_wg="${WIREGUARD_BUILTIN:-0}"
 
-  if [[ "${PLAT}" == "Raspbian" ]]; then
-    echo " desde el paquete Raspbian..."
+  echo "::: [INFO] Identificando el ecosistema operativo para compilar dependencias..."
 
-    # qrencode se usa para generar qrcodes desde el archivo de config,
-    # para uso con clientes móviles
-    PIVPN_DEPS+=(qrencode)
-  elif [[ "${PLAT}" == "Debian" ]]; then
-    echo " desde el paquete Debian..."
+  case "${platform}" in
+    "Raspbian")
+      echo "::: [INFO] Detectado entorno Raspbian. Añadiendo utilidades de renderizado QR móviles..."
+      PIVPN_DEPS+=(qrencode)
+      ;;
+    "Debian")
+      echo "::: [INFO] Detectado entorno Debian. Evaluando integración nativa del kernel..."
+      PIVPN_DEPS+=(qrencode)
+      if [[ "${builtin_wg}" -eq 0 ]]; then
+        echo "::: [AVISO] Módulo WireGuard no integrado en el kernel base. Añadiendo cabeceras y soporte DKMS..."
+        PIVPN_DEPS+=(linux-headers-amd64 wireguard-dkms)
+      fi
+      ;;
+    "Ubuntu")
+      echo "::: [INFO] Detectado entorno Ubuntu. Evaluando integración nativa del kernel..."
+      PIVPN_DEPS+=(qrencode)
+      if [[ "${builtin_wg}" -eq 0 ]]; then
+        echo "::: [AVISO] Módulo WireGuard no integrado en el kernel base. Añadiendo cabeceras y soporte DKMS..."
+        PIVPN_DEPS+=(linux-headers-generic wireguard-dkms)
+      fi
+      ;;
+    "Alpine")
+      echo "::: [INFO] Detectado entorno Alpine Linux. Preparando dependencias del stack minimalista..."
+      PIVPN_DEPS+=(libqrencode)
+      ;;
+    *)
+      echo "::: [AVISO] Plataforma no mapeada explícitamente (${platform}). Se procederá con el lote base genérico."
+      ;;
+  esac
 
-    PIVPN_DEPS+=(qrencode)
-
-    if [[ "${WIREGUARD_BUILTIN}" -eq 0 ]]; then
-      # Instalar explícitamente el módulo si no está integrado
-      PIVPN_DEPS+=(linux-headers-amd64 wireguard-dkms)
-    fi
-  elif [[ "${PLAT}" == "Ubuntu" ]]; then
-    echo "..."
-
-    PIVPN_DEPS+=(qrencode)
-
-    if [[ "${WIREGUARD_BUILTIN}" -eq 0 ]]; then
-      PIVPN_DEPS+=(linux-headers-generic wireguard-dkms)
-    fi
-  elif [[ "${PLAT}" == 'Alpine' ]]; then
-    echo "..."
-
-    PIVPN_DEPS+=(libqrencode)
-  fi
-
-  if [[ "${PLAT}" == "Raspbian" || "${PLAT}" == "Debian" ]] \
+  # ------------------------------------------------------------------------------
+  # GESTIÓN DE RETROCOMPATIBILIDAD Y ANCLAJE DE REPOSITORIOS (APT PINNING)
+  # ------------------------------------------------------------------------------
+  # Si los paquetes de WireGuard no están consolidados nativamente en los índices del host,
+  # se realiza un aprovisionamiento controlado apuntando a espejos estables de contingencia.
+  if [[ "${platform}" == "Raspbian" || "${platform}" == "Debian" ]] \
     && [[ -z "${AVAILABLE_WIREGUARD}" ]]; then
-    if [[ "${PLAT}" == "Debian" ]]; then
-      echo "::: Añadiendo repositorio Debian Bullseye... "
-      echo "deb https://deb.debian.org/debian/ bullseye main" \
-        | ${SUDO} tee /etc/apt/sources.list.d/pivpn-bullseye-repo.list > /dev/null
+    
+    echo "::: [AVISO] El motor WireGuard no está disponible de forma nativa en los índices de paquetes activos."
+    
+    local repo_list="/etc/apt/sources.list.d/pivpn-bullseye-repo.list"
+    local pref_file="/etc/apt/preferences.d/pivpn-limit-bullseye"
+
+    if [[ "${platform}" == "Debian" ]]; then
+      echo "::: [INFO] Registrando espejo de contingencia oficial: Debian Bullseye..."
+      if ! echo "deb https://deb.debian.org/debian/ bullseye main" | ${SUDO} tee "${repo_list}" > /dev/null; then
+        err "Fallo crítico de E/S: No se pudo escribir la lista de orígenes de paquetes en '${repo_list}'."
+        exit 1
+      fi
     else
-      echo "::: Añadiendo repositorio Raspbian Bullseye... "
-      echo "deb http://raspbian.raspberrypi.org/raspbian/ bullseye main" \
-        | ${SUDO} tee /etc/apt/sources.list.d/pivpn-bullseye-repo.list > /dev/null
+      echo "::: [INFO] Registrando espejo de contingencia oficial: Raspbian Bullseye..."
+      if ! echo "deb http://raspbian.raspberrypi.org/raspbian/ bullseye main" | ${SUDO} tee "${repo_list}" > /dev/null; then
+        err "Fallo crítico de E/S: No se pudo escribir la lista de orígenes de paquetes en '${repo_list}'."
+        exit 1
+      fi
     fi
 
-    {
+    # Imponer políticas de Apt-Pinning estratégicas para evitar la contaminación cruzada de paquetes globales
+    echo "::: [INFO] Configurando directivas de Apt-Pinning para aislar el árbol de WireGuard..."
+    if ! {
       printf 'Package: *\n'
       printf 'Pin: release n=bullseye\n'
       printf 'Pin-Priority: -1\n\n'
       printf 'Package: wireguard wireguard-dkms wireguard-tools\n'
       printf 'Pin: release n=bullseye\n'
       printf 'Pin-Priority: 100\n'
-    } | ${SUDO} tee /etc/apt/preferences.d/pivpn-limit-bullseye > /dev/null
+    } | ${SUDO} tee "${pref_file}" > /dev/null; then
+      
+      whiptail --backtitle "Asistente de Instalación PiVPN" \
+               --title "Error de Configuración APT" \
+               --ok-button "Aceptar" \
+               --msgbox "Fallo de escritura en el almacenamiento local al intentar definir las prioridades del gestor de paquetes en:\n\n${pref_file}\n\nPor favor, comprueba los permisos del sistema de archivos o el espacio en disco." "${r:-14}" "${c:-72}"
+      
+      echo "::: [ERROR] No se pudieron consolidar las restricciones de prioridad (Apt-Pinning) en el host." >&2
+      exit 1
+    fi
 
-    echo "::: Actualizando la caché de paquetes..."
+    echo "::: [INFO] Sincronizando e indexando la nueva caché local del gestor de paquetes..."
     updatePackageCache
   fi
 
-  installDependentPackages PIVPN_DEPS[@]
+  # ------------------------------------------------------------------------------
+  # INSTALACIÓN DEFINITIVA DEL LOGICIAL CRYPTO-NET
+  # ------------------------------------------------------------------------------
+  echo "::: [INFO] Ejecutando el despliegue del lote de dependencias y herramientas..."
+  if ! installDependentPackages PIVPN_DEPS[@]; then
+    
+    whiptail --backtitle "Asistente de Instalación PiVPN" \
+             --title "Fallo en Despliegue de Dependencias" \
+             --ok-button "Aceptar" \
+             --msgbox "No se han podido descargar o procesar los paquetes requeridos por el sistema:\n\n${PIVPN_DEPS[*]}\n\nPor favor, verifica la conectividad WAN del servidor o la disponibilidad de los mirrors de la distribución." "${r:-14}" "${c:-72}"
+    
+    err "Fallo catastrófico: La instalación de componentes base de WireGuard ha sido cancelada."
+    exit 1
+  fi
+
+  echo "::: [ÉXITO] El entorno tecnológico de WireGuard ha sido desplegado y verificado con éxito."
 }
 
 askCustomProto() {
