@@ -1780,25 +1780,42 @@ getStaticIPv4Settings() {
 }
 
 setDHCPCD() {
-  if [[ -f /etc/dhcpcd.conf ]]; then
+  # ==============================================================================
+  #         APLICACIÓN DE DIRECCIÓN IP ESTÁTICA VÍA SUBSISTEMA DHCPCD
+  # ==============================================================================
+  # Valida la existencia del archivo de configuración global de dhcpcd y añade
+  # las directivas estáticas correspondientes si no se encuentran ya registradas.
+
+  echo "::: [INFO] Configurando direccionamiento estático mediante el demonio dhcpcd..."
+
+  if [[ -f "${dhcpcdFile}" ]]; then
+    # Evitar duplicaciones redundantes inspeccionando el archivo de configuración
     if grep -q "${IPv4addr}" "${dhcpcdFile}"; then
-      echo "::: IP estática ya configurada."
+      echo "::: [INFO] La dirección IP estática ya se encuentra registrada en: ${dhcpcdFile}."
     else
+      echo "::: [INFO] Escribiendo nuevas directivas de red en '${dhcpcdFile}'..."
       writeDHCPCDConf
-      ${SUDO} ip addr replace dev "${IPv4dev}" "${IPv4addr}"
-      echo ":::"
-      echo -n "::: Estableciendo la IP a ${IPv4addr}.  "
-      echo "Es posible que debas reiniciar una vez completada la instalación."
-      echo ":::"
+
+      echo "::: [INFO] Intentando actualizar dinámicamente la IP en la interfaz '${IPv4dev}'..."
+      if ${SUDO} ip addr replace dev "${IPv4dev}" "${IPv4addr}"; then
+        echo "::: [ÉXITO] Dirección IP local reemplazada en caliente correctamente a ${IPv4addr}."
+        echo "::: [AVISO] Nota: Se recomienda realizar un reinicio limpio al finalizar la instalación."
+      else
+        echo "::: [AVISO] No se pudo aplicar el cambio en caliente. La nueva IP se asentará tras el reinicio."
+      fi
     fi
   else
-    err "::: Crítico: ¡No se pudo localizar el archivo de configuración para establecer la dirección IPv4 estática!"
+    err "Error crítico: No se localizó el archivo de configuración de red esperado en '${dhcpcdFile}'."
     exit 1
   fi
 }
 
 writeDHCPCDConf() {
-  # Añadir estas líneas a dhcpcd.conf para habilitar una IP estática
+  # ==============================================================================
+  #         ESCRITURA ATÓMICA DE PARÁMETROS EN EL ARCHIVO DHCPCD.CONF
+  # ==============================================================================
+  # Vuelca las directivas estructuradas de red local mediante elevación de privilegios.
+
   {
     echo "interface ${IPv4dev}"
     echo "static ip_address=${IPv4addr}"
@@ -1806,29 +1823,71 @@ writeDHCPCDConf() {
     echo "static domain_name_servers=${IPv4dns}"
   } | ${SUDO} tee -a "${dhcpcdFile}" > /dev/null
 
+  if [[ "${PIPESTATUS[1]}" -ne 0 ]]; then
+    err "Error grave: Falló la escritura persistente en el archivo '${dhcpcdFile}'."
+    exit 1
+  fi
 }
 
 setNetworkManager() {
-  connectionUUID=$(nmcli -t con show --active \
-    | awk -v ref="${IPv4dev}" -F: 'match($0, ref){print $2}')
+  # ==============================================================================
+  #       APLICACIÓN DE DIRECCIÓN IP ESTÁTICA VÍA NETWORKMANAGER (NMCLI)
+  # ==============================================================================
+  # Identifica de forma precisa la conexión activa vinculada al dispositivo de red
+  # y conmuta su comportamiento de asignación automática (DHCP) a estático/manual.
 
-  ${SUDO} nmcli con mod "${connectionUUID}" \
+  echo "::: [INFO] Solicitando identificador único de conexión activa para la interfaz '${IPv4dev}'..."
+
+  # Extracción limpia del UUID de red de la conexión actualmente en uso
+  local connectionUUID
+  connectionUUID=$(nmcli -t con show --active | awk -v ref="${IPv4dev}" -F: 'match($0, ref){print $2}')
+
+  # Control de Contingencia: Intento de resolución específico por mapeo de dispositivo si el flujo general falla
+  if [[ -z "${connectionUUID}" ]]; then
+    connectionUUID=$(nmcli -t -f DEVICE,UUID con show --active 2>/dev/null | awk -F: -v dev="${IPv4dev}" '$1==dev {print $2}')
+  fi
+
+  if [[ -z "${connectionUUID}" ]]; then
+    err "No se pudo identificar una conexión activa de NetworkManager vinculada a la interfaz '${IPv4dev}'."
+    exit 1
+  fi
+
+  echo "::: [INFO] Conexión activa validada (UUID: ${connectionUUID}). Modificando perfil de red..."
+
+  # Reconfiguración manual del perfil de red mediante nmcli
+  if ${SUDO} nmcli con mod "${connectionUUID}" \
     ipv4.addresses "${IPv4addr}" \
     ipv4.gateway "${IPv4gw}" \
     ipv4.dns "${IPv4dns}" \
-    ipv4.method "manual"
+    ipv4.method "manual"; then
+    
+    echo "::: [ÉXITO] Los parámetros de NetworkManager se han modificado de forma correcta."
+    echo "::: [INFO] El gestor aplicará la configuración estática de forma permanente al reiniciar los servicios."
+  else
+    err "Error al aplicar las modificaciones IPv4 de NetworkManager sobre la conexión con UUID: ${connectionUUID}."
+    exit 1
+  fi
 }
 
 setStaticIPv4() {
-  # Intenta establecer la dirección IPv4
+  # ==============================================================================
+  #            ORQUESTADOR GENERAL DE ASIGNACIÓN DE RED CONFIGURADA
+  # ==============================================================================
+  # Evalúa dinámicamente cuál es el motor de red operativo del sistema anfitrión
+  # y deriva el flujo hacia el gestor correspondiente.
+
+  echo "::: [INFO] Iniciando el volcado final de la configuración estática de IPv4..."
+
   if [[ -v useNetworkManager ]]; then
-    echo "::: Usando Network manager"
+    echo "::: [INFO] Motor de red detectado en las variables: NetworkManager."
     setNetworkManager
     echo "useNetworkManager=${useNetworkManager}" >> "${tempsetupVarsFile}"
   else
-    echo "::: Usando DHCPCD"
+    echo "::: [INFO] Motor de red detectado en las variables: Subsistema clásico DHCPCD."
     setDHCPCD
   fi
+
+  echo "::: [ÉXITO] Configuración e inicialización de interfaces fijas IPv4 completada."
 }
 
 chooseUser() {
