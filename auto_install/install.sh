@@ -2529,112 +2529,118 @@ generateRandomSubnet() {
   fi
 }
 
-setOpenVPNDefaultVars() {
-  pivpnDEV="tun0"
+allocateVPNSubnet() {
+  # ==============================================================================
+  #       ASIGNADOR ASISTIDO DE POOL DE SUBREDES PRIVADAS (RFC 1918)
+  # ==============================================================================
+  # Evalúa secuencialmente los tres bloques principales de direccionamiento privado
+  # para mitigar colisiones con la LAN física del servidor o de los clientes.
 
-  # Permitir un NET personalizado a través del archivo desatendido setupVARs.
-  # Usar el valor predeterminado si no se proporciona.
-  if [[ -z "${pivpnNET}" ]]; then
-    echo "::: Asignando subred privada aleatoria dentro del rango 10.0.0.0/8..."
-    pivpnNET="$(generateRandomSubnet "10.0.0.0/8" "$subnetClass")"
+  if [[ -n "${pivpnNET}" ]]; then
+    echo "::: [INFO] Reutilizando subred estática preconfigurada de forma desatendida: ${pivpnNET}/${subnetClass}"
+    return 0
   fi
 
+  echo "::: [INFO] Buscando un segmento IPv4 dinámico libre de conflictos de enrutamiento..."
+
+  # Intento 1: Bloque de Clase A (Común en entornos empresariales / Docker vnet)
+  echo "::: [INFO] Evaluando disponibilidad en el espacio de direccionamiento 10.0.0.0/8..."
+  pivpnNET="$(generateRandomSubnet "10.0.0.0/8" "${subnetClass}")"
+
+  # Intento 2: Bloque de Clase B (Menos común, óptimo para aislamiento de VPN)
   if [[ -z "${pivpnNET}" ]]; then
-    echo "::: El rango 10.0.0.0/8 está saturado o en uso. Intentando con 172.16.0.0/12..."
-    pivpnNET="$(generateRandomSubnet "172.16.0.0/12" "$subnetClass")"
+    echo "::: [AVISO] Espacio 10.0.0.0/8 saturado o en conflicto. Probando bloque 172.16.0.0/12..."
+    pivpnNET="$(generateRandomSubnet "172.16.0.0/12" "${subnetClass}")"
   fi
 
+  # Intento 3: Bloque de Clase C (Uso doméstico masivo, última opción de contingencia)
   if [[ -z "${pivpnNET}" ]]; then
-    echo "::: La red 172.16.0.0/12 no está disponible, probando con 192.168.0.0/16 a continuación..."
-    pivpnNET="$(generateRandomSubnet "192.168.0.0/16" "$subnetClass")"
+    echo "::: [AVISO] Espacio 172.16.0.0/12 no disponible. Probando bloque de contingencia 192.168.0.0/16..."
+    pivpnNET="$(generateRandomSubnet "192.168.0.0/16" "${subnetClass}")"
   fi
 
+  # Control de saturación total del entorno de red virtual
   if [[ -z "${pivpnNET}" ]]; then
-    # Esto no debería ocurrir en la práctica
-    echo "::: No se pudo generar una subred aleatoria para PiVPN. Parece que todas las redes privadas están en uso."
+    err "Error catastrófico: No se ha podido reservar una subred privada. Todos los segmentos RFC 1918 están ocupados."
     exit 1
   fi
 
-  pivpnNETdec="$(dotIPv4ToDec "${pivpnNET}")"
+  echo "::: [ÉXITO] Subred virtual asignada con éxito al direccionamiento local: ${pivpnNET}/${subnetClass}"
+}
 
+calculateVPNEndpoints() {
+  # ==============================================================================
+  #       CALCULADOR DE PARÁMETROS DE RED Y DIRECCIONES DE ENLACE
+  # ==============================================================================
+  # Transforma la subred en formato decimal y extrae de forma automática la primera 
+  # IP válida para ser utilizada como la interfaz de la pasarela de enlace (Gateway).
+
+  pivpnNETdec="$(dotIPv4ToDec "${pivpnNET}")"
   vpnGwdec="$((pivpnNETdec + 1))"
   vpnGw="$(decIPv4ToDot "${vpnGwdec}")"
   vpnGwhex="$(decIPv4ToHex "${vpnGwdec}")"
 
-  if [[ "${pivpnenableipv6}" -eq 1 ]] \
-    && [[ -z "${pivpnNETv6}" ]]; then
-    pivpnNETv6="fd11:5ee:bad:c0de::"
-  fi
-
-  if [[ "${pivpnenableipv6}" -eq 1 ]]; then
+  # Tratamiento y aprovisionamiento automático de direccionamiento IPv6 (ULA)
+  if [[ "${pivpnenableipv6:-0}" -eq 1 ]]; then
+    if [[ -z "${pivpnNETv6}" ]]; then
+      pivpnNETv6="fd11:5ee:bad:c0de::"
+    fi
     vpnGwv6="${pivpnNETv6}${vpnGwhex}"
+    echo "::: [INFO] Direccionamiento IPv6 activo. Pasarela virtual calculada: [${vpnGwv6}]"
   fi
 }
 
+setOpenVPNDefaultVars() {
+  # ==============================================================================
+  #       ESTABLECER CONFIGURACIONES POR DEFECTO PARA EL MOTOR OPENVPN
+  # ==============================================================================
+  
+  echo "::: [INFO] Cargando entorno de variables predeterminadas para OpenVPN..."
+  pivpnDEV="tun0"
+
+  # Ejecutar asignación matricial de red y gateways
+  allocateVPNSubnet
+  calculateVPNEndpoints
+}
+
 setWireguardDefaultVars() {
-  # Dado que WireGuard solo usa UDP, nunca se llama a askCustomProto(),
-  # por lo que establecemos el protocolo aquí.
+  # ==============================================================================
+  #       ESTABLECER CONFIGURACIONES POR DEFECTO PARA EL MOTOR WIREGUARD
+  # ==============================================================================
+  
+  echo "::: [INFO] Cargando entorno de variables predeterminadas para WireGuard..."
+  
+  # WireGuard opera nativamente de forma exclusiva sobre la capa de transporte UDP
   pivpnPROTO="udp"
   pivpnDEV="wg0"
 
-  # Permitir un NET personalizado a través del archivo desatendido setupVARs.
-  # Usar el valor predeterminado si no se proporciona.
-  if [[ -z "${pivpnNET}" ]]; then
-    echo "::: Generando subred aleatoria en la red 10.0.0.0/8..."
-    pivpnNET="$(generateRandomSubnet "10.0.0.0/8" "$subnetClass")"
-  fi
+  # Ejecutar asignación matricial de red y gateways
+  allocateVPNSubnet
+  calculateVPNEndpoints
 
-  if [[ -z "${pivpnNET}" ]]; then
-    echo "::: La red 10.0.0.0/8 no está disponible, probando con 172.16.0.0/12 a continuación..."
-    pivpnNET="$(generateRandomSubnet "172.16.0.0/12" "$subnetClass")"
-  fi
-
-  if [[ -z "${pivpnNET}" ]]; then
-    echo "::: La red 172.16.0.0/12 no está disponible, probando con 192.168.0.0/16 a continuación..."
-    pivpnNET="$(generateRandomSubnet "192.168.0.0/16" "$subnetClass")"
-  fi
-
-  if [[ -z "${pivpnNET}" ]]; then
-    # Esto no debería ocurrir en la práctica
-    echo "::: No se pudo generar una subred aleatoria para PiVPN. Parece que todas las redes privadas están en uso."
-    exit 1
-  fi
-
-  pivpnNETdec="$(dotIPv4ToDec "${pivpnNET}")"
-
-  vpnGwdec="$((pivpnNETdec + 1))"
-  vpnGw="$(decIPv4ToDot "${vpnGwdec}")"
-  vpnGwhex="$(decIPv4ToHex "${vpnGwdec}")"
-
-  if [[ "${pivpnenableipv6}" -eq 1 ]] \
-    && [[ -z "${pivpnNETv6}" ]]; then
-    pivpnNETv6="fd11:5ee:bad:c0de::"
-  fi
-
-  if [[ "${pivpnenableipv6}" -eq 1 ]]; then
-    vpnGwv6="${pivpnNETv6}${vpnGwhex}"
-  fi
-
-  # Permitir IPs permitidas personalizadas a través del archivo desatendido setupVARs.
-  # Usar el valor predeterminado si no se proporciona.
+  # ------------------------------------------------------------------------------
+  # GESTIÓN DE POLÍTICAS DE TRÁFICO PERMITIDO (ALLOWED IPs - SPLIT/FULL TUNNEL)
+  # ------------------------------------------------------------------------------
   if [[ -z "${ALLOWED_IPS}" ]]; then
+    # Por defecto, se aprovisiona como "Túnel Completo" (Full Tunnel) enrutando todo el tráfico
     ALLOWED_IPS="0.0.0.0/0"
 
-    # Reenviar todo el tráfico a través de PiVPN (es decir, túnel completo), puede ser modificado por
-    # el usuario después de la instalación.
-    if [[ "${pivpnenableipv6}" -eq 1 ]] \
-      || [[ "${pivpnforceipv6route}" -eq 1 ]]; then
+    # Enrutar el tráfico global IPv6 a través del túnel si la pila dual está habilitada
+    if [[ "${pivpnenableipv6:-0}" -eq 1 || "${pivpnforceipv6route:-0}" -eq 1 ]]; then
       ALLOWED_IPS="${ALLOWED_IPS}, ::0/0"
     fi
   fi
 
-  # La MTU predeterminada debería estar bien para la mayoría de los usuarios, pero permitimos establecer una
-  # MTU personalizada a través del archivo desatendido setupVARs. Usar el valor predeterminado si no se proporciona.
+  # ------------------------------------------------------------------------------
+  # OPTIMIZACIÓN DE MTU (MAXIMUM TRANSMISSION UNIT)
+  # ------------------------------------------------------------------------------
+  # Se establece 1420 por defecto para dejar un margen seguro de 80 bytes (overhead) 
+  # evitando la fragmentación de paquetes encapsulados en enlaces WAN estándar de 1500.
   if [[ -z "${pivpnMTU}" ]]; then
-    # Usando la MTU predeterminada de Wireguard
     pivpnMTU="1420"
   fi
 
+  # Desactivar bandera de personalización interactiva por defecto
   CUSTOMIZE=0
 }
 
