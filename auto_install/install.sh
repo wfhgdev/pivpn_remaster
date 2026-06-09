@@ -2047,7 +2047,7 @@ chooseUser() {
     --ok-button "Confirmar Selección"
     --cancel-button "Cancelar e Interrumpir"
     --separate-output
-    --radiolist "Selecciona la cuenta de usuario encargada de custodiar las llaves y certificados criptográficos de tus clientes VPN:\n(Usa las flechas de dirección para navegar y la barra 'Espacio' para marcar tu opción)"
+    --radiolist "Selecciona la cuenta de usuario encargada de custodiar las llaves y certificados criptográficos de tus clientes VPN:\n\n(Usa las flechas de dirección para navegar y la barra 'Espacio' para marcar tu opción)"
     "${r}" "${c}" "${numUsers}"
   )
 
