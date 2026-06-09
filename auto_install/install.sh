@@ -5140,105 +5140,192 @@ confUnattendedUpgrades() {
 }
 
 writeConfigFiles() {
-  # Guardar la configuración de instalación en la ubicación final
-  echo "INSTALLED_PACKAGES=(${INSTALLED_PACKAGES[*]})" >> "${tempsetupVarsFile}"
-  echo "::: Archivos de configuración copiados a ${setupConfigDir}/${VPN}/${setupVarsFile}"
-  ${SUDO} mkdir -p "${setupConfigDir}/${VPN}/"
-  ${SUDO} cp "${tempsetupVarsFile}" "${setupConfigDir}/${VPN}/${setupVarsFile}"
+  # ==============================================================================
+  #            PERSISTENCIA DE LOS ARCHIVOS DE CONFIGURACIÓN FINALES
+  # ==============================================================================
+  echo ":::"
+  echo "::: [INFO] Consolidando el volcado final de variables de entorno de la instalación..."
+
+  # Inyección segura de los paquetes instalados en el archivo de entorno temporal
+  if ! echo "INSTALLED_PACKAGES=(${INSTALLED_PACKAGES[*]})" >> "${tempsetupVarsFile}"; then
+    err "Fallo crítico de E/S: No se pudieron anexar los paquetes instalados en el registro temporal."
+    exit 1
+  fi
+
+  echo "::: [INFO] Generando el directorio destino final de configuración del protocolo..."
+  if ! ${SUDO} mkdir -p "${setupConfigDir}/${VPN}/"; then
+    err "Fallo de entorno: Imposible crear la ruta estructurada '${setupConfigDir}/${VPN}/'."
+    exit 1
+  fi
+
+  echo "::: [INFO] Guardando la instantánea de variables definitivas en el almacenamiento..."
+  if ! ${SUDO} cp "${tempsetupVarsFile}" "${setupConfigDir}/${VPN}/${setupVarsFile}"; then
+    err "Fallo de E/S: Error al mover la configuración definitiva a '${setupConfigDir}/${VPN}/${setupVarsFile}'."
+    if [[ "${runUnattended}" != 'true' ]]; then
+      whiptail --backtitle "Asistente de Configuración - PiVPN" \
+               --title "Error de Almacenamiento" \
+               --ok-button "Salir del Instalador" \
+               --msgbox "No se pudo guardar la configuración final en el directorio del sistema.\n\nPor favor, verifica los permisos de escritura en la ruta: ${setupConfigDir}" "${r}" "${c}"
+    fi
+    exit 1
+  fi
+
+  echo "::: [ÉXITO] Archivos de configuración consolidados correctamente en: ${setupConfigDir}/${VPN}/${setupVarsFile}"
 }
 
 installScripts() {
-  # Asegurar que /opt exista (problema #607)
-  ${SUDO} mkdir -p /opt
+  # ==============================================================================
+  #          ENLACE E INSTALACIÓN DE LOS COMPONENTES Y SCRIPTS OPERATIVOS
+  # ==============================================================================
+  echo ":::"
+  echo "::: [INFO] Iniciando el despliegue y enlazado de scripts del ecosistema PiVPN..."
 
+  # Asegurar que el directorio base de utilidades externas exista (parche histórico para problema #607)
+  if ! ${SUDO} mkdir -p /opt; then
+    err "Fallo estructural: No se pudo verificar ni crear el directorio base /opt."
+    exit 1
+  fi
+
+  # Determinación lógica de exclusión binaria del protocolo alternativo
+  local othervpn
   if [[ "${VPN}" == 'wireguard' ]]; then
     othervpn='openvpn'
   else
     othervpn='wireguard'
   fi
 
-  # Crear enlaces simbólicos de los scripts desde /usr/local/src/pivpn a sus diversas ubicaciones
-  echo -e "::: Instalando scripts en ${pivpnScriptDir}..."
+  echo "::: [INFO] Analizando convivencia de protocolos y configurando accesos CLI..."
 
-  # si el archivo del otro protocolo existe, se ha instalado
+  # Caso 1: Coexistencia detectada. Si el archivo del otro protocolo ya existe en el sistema
   if [[ -r "${setupConfigDir}/${othervpn}/${setupVarsFile}" ]]; then
-    # Ambos están instalados, sin autocompletado de bash, desvincular si ya está ahí
-    ${SUDO} unlink /etc/bash_completion.d/pivpn
+    echo "::: [INFO] Entorno Multiprotocolo detectado (${VPN} y ${othervpn}). Unificando script central de control..."
 
-    # Desvincular el script pivpn específico del protocolo y enlazar simbólicamente el script
-    # común a la ubicación en su lugar
-    ${SUDO} unlink /usr/local/bin/pivpn
-    ${SUDO} ln -sfT "${pivpnFilesDir}/scripts/pivpn" /usr/local/bin/pivpn
+    # Limpieza silenciosa y segura de enlaces simbólicos específicos para evitar colisiones
+    ${SUDO} rm -f /etc/bash_completion.d/pivpn &>/dev/null
+    ${SUDO} rm -f /usr/local/bin/pivpn &>/dev/null
+
+    # Enlazar simbólicamente al despachador de comandos comunes/unificados de PiVPN
+    if ! ${SUDO} ln -sfT "${pivpnFilesDir}/scripts/pivpn" /usr/local/bin/pivpn; then
+      err "Fallo de enlace: No se pudo mapear el despachador común en /usr/local/bin/pivpn."
+      exit 1
+    fi
+  
+  # Caso 2: Instalación limpia/Monoprotocolo. Configuración dedicada exclusiva
   else
-    # Comprobar si el directorio de scripts bash_completion existe y crearlo si no
-    ${SUDO} mkdir -p /etc/bash_completion.d
+    echo "::: [INFO] Entorno Monoprotocolo. Creando dependencias de autocompletado y rutas específicas para ${VPN^^}..."
 
-    # Solo hay un protocolo instalado, enlazar simbólicamente el autocompletado de bash, el script pivpn
-    # y el directorio de scripts
-    ${SUDO} ln -sfT \
-      "${pivpnFilesDir}/scripts/${VPN}/bash-completion" \
-      /etc/bash_completion.d/pivpn
-    ${SUDO} ln -sfT \
-      "${pivpnFilesDir}/scripts/${VPN}/pivpn.sh" \
-      /usr/local/bin/pivpn
-    ${SUDO} ln -sf "${pivpnFilesDir}/scripts/" "${pivpnScriptDir}"
+    # Asegurar existencia del directorio de autocompletado interactivo de Bash
+    if ! ${SUDO} mkdir -p /etc/bash_completion.d; then
+      err "Fallo de entorno: No se pudo instanciar el directorio /etc/bash_completion.d."
+      exit 1
+    fi
+
+    # Remoción segura de enlaces previos redundantes para evitar conflictos de sobreescritura
+    ${SUDO} rm -f /etc/bash_completion.d/pivpn /usr/local/bin/pivpn &>/dev/null
+
+    # Despliegue atómico de la terna de enlaces del entorno (autocompletado, binario CLI y scripts raíz)
+    if ! ${SUDO} ln -sfT "${pivpnFilesDir}/scripts/${VPN}/bash-completion" /etc/bash_completion.d/pivpn || \
+       ! ${SUDO} ln -sfT "${pivpnFilesDir}/scripts/${VPN}/pivpn.sh" /usr/local/bin/pivpn || \
+       ! ${SUDO} ln -sf "${pivpnFilesDir}/scripts/" "${pivpnScriptDir}"; then
+      
+      err "Fallo de enlace estructural: No se pudieron vincular las herramientas del intérprete de comandos."
+      if [[ "${runUnattended}" != 'true' ]]; then
+        whiptail --backtitle "Asistente de Configuración - PiVPN" \
+                 --title "Fallo de Enlaces Simbólicos" \
+                 --ok-button "Revisar Consola" \
+                 --msgbox "Ocurrió un error inesperado al intentar enlazar los scripts del entorno CLI de PiVPN en las rutas del sistema.\n\nPor favor, verifica la integridad de los archivos de origen en: ${pivpnFilesDir}/scripts" "${r}" "${c}"
+      fi
+      exit 1
+    fi
+
+    # Carga en caliente del autocompletado para la shell de instalación actual de forma segura
     # shellcheck disable=SC1091
-    . /etc/bash_completion.d/pivpn
+    if [[ -f /etc/bash_completion.d/pivpn ]]; then
+      . /etc/bash_completion.d/pivpn 2>/dev/null || true
+    fi
   fi
 
-  echo " hecho."
+  echo "::: [ÉXITO] Todo el repertorio de scripts operativos y accesos directos se ha instalado correctamente en: ${pivpnScriptDir}"
 }
 
 displayFinalMessage() {
-  # Asegurar que las escrituras en caché lleguen al almacenamiento persistente
-  echo "::: Vaciando escrituras en el disco..."
-
+  # ==============================================================================
+  #         PROCESAMIENTO Y MIGRACIÓN DE DATOS A ALMACENAMIENTO PERSISTENTE
+  # ==============================================================================
+  echo ":::"
+  echo "::: [INFO] Forzando el vaciado de búferes y cachés de escritura ('sync') en el disco..."
+  
+  # Garantiza que ninguna configuración permanezca volátil en RAM
   sync
 
-  echo "::: hecho."
+  echo "::: [INFO] Sincronización de almacenamiento completada con éxito."
 
+  # ------------------------------------------------------------------------------
+  # RAMAL A: MODO DE FINALIZACIÓN DESATENDIDO (AUTOMATIZADO)
+  # ------------------------------------------------------------------------------
   if [[ "${runUnattended}" == 'true' ]]; then
-    echo "::: ¡Instalación Completada!"
-    echo "::: Ahora ejecuta 'pivpn add' para crear los perfiles de los clientes."
-    echo "::: ¡Ejecuta 'pivpn help' para ver qué más puedes hacer!"
-    echo
-    echo -n "::: Si encuentras alguna dificultad, por favor consulta la documentación "
-    echo "o abre un reporte detallado en nuestro repositorio."
-    echo "::: (https://github.com/wfhgdev/pivpn_spanish)"
-    echo
-    echo "::: Gracias por utilizar este instalador en español."
-    echo "::: Se recomienda encarecidamente reiniciar después de la instalación."
+    echo ":::"
+    echo "::: [ÉXITO] ¡Instalación completada de forma correcta en modo desatendido!"
+    echo "::: [INFO] Guía rápida de operaciones post-instalación:"
+    echo ":::        • Ejecuta 'pivpn add' para generar perfiles de cliente."
+    echo ":::        • Ejecuta 'pivpn help' para inspeccionar el catálogo de comandos CLI."
+    echo ":::"
+    echo "::: [INFO] Soporte y documentación oficial del proyecto:"
+    echo ":::        URL: https://github.com/wfhgdev/pivpn_spanish"
+    echo ":::"
+    echo "::: [ADVERTENCIA] Se recomienda encarecidamente reiniciar el servidor para aplicar todos los cambios."
     return
   fi
 
-  # Mensaje de finalización para el usuario
+  # ------------------------------------------------------------------------------
+  # RAMAL B: MODO DE FINALIZACIÓN INTERACTIVO (ASISTENTE GRÁFICO WHIPTAIL)
+  # ------------------------------------------------------------------------------
+  echo "::: [INFO] Desplegando panel gráfico de confirmación de fin de despliegue..."
+
+  # Cuadro Informativo de Éxito
   whiptail \
-    --backtitle "Finalizando Instalación" \
-    --title "¡Configuración Exitosa!" --ok-button "Finalizar" \
-    --msgbox "¡Enhorabuena! Tu servidor VPN ya está operativo.
+    --backtitle "Asistente de Configuración - PiVPN" \
+    --title "¡Configuración Exitosa!" \
+    --ok-button "Entendido, Finalizar" \
+    --msgbox "¡Enhorabuena! Tu servidor privado de comunicaciones VPN ya se encuentra completamente operativo y listo para su uso.\n\nComandos utilitarios de gestión CLI para comenzar:\n• pivpn add  : Genera y exporta nuevos perfiles criptográficos de usuario.\n• pivpn help : Consulta el manual completo de comandos de administración disponibles.\n\n¿Experimentas alguna incidencia técnico-operativa?\nPor favor, revisa en detalle nuestra documentación oficial antes de abrir un reporte. Esto nos ayuda a mantener un ecosistema de soporte ágil y estructurado.\n\nGracias por depositar tu confianza en PiVPN en Español." \
+    "${r}" "${c}"
 
-Comandos útiles para empezar:
-• pivpn add : Crea nuevos perfiles de usuario.
-• pivpn help : Consulta todos los comandos disponibles.
+  echo "::: [INFO] Solicitando confirmación interactiva para reiniciar el sistema anfitrión..."
 
-¿Encontraste algún problema? 
-Por favor, revisa nuestra documentación oficial antes de reportar un error. Esto nos ayuda a ofrecerte un mejor soporte y a mantener la comunidad organizada.
-
-Gracias por confiar en PiVPN Spanish." "${r}" "${c}"
-
+  # Diálogo de confirmación para el reinicio inmediato de la máquina
   if whiptail \
-    --title "Reiniciar" \
-    --defaultno --yes-button "Sí" --no-button "No" \
-    --yesno "Se recomienda encarecidamente reiniciar después de la instalación. \
-¿Te gustaría reiniciar ahora?" "${r}" "${c}"; then
-    whiptail \
-      --title "Reiniciando" \
-      --msgbox "El sistema se reiniciará ahora." "${r}" "${c}"
-    printf "\\nReiniciando el sistema...\\n"
-    ${SUDO} sleep 3
+    --backtitle "Asistente de Configuración - PiVPN" \
+    --title "Reinicio del Sistema Recomendado" \
+    --yes-button "Sí, reiniciar ahora (Recomendado)" \
+    --no-button "No, reiniciar más tarde" \
+    --defaultno \
+    --yesno "Se aconseja realizar un reinicio completo del servidor tras finalizar el aprovisionamiento de red y las actualizaciones.\n\n¿Deseas programar y ejecutar el reinicio inmediato del sistema?" \
+    "${r}" "${c}"; then
 
-    ${SUDO} reboot
+    whiptail \
+      --backtitle "Asistente de Configuración - PiVPN" \
+      --title "Secuencia de Reinicio Activada" \
+      --ok-button "Proceder" \
+      --msgbox "El sistema procederá a cerrarse y reiniciarse de manera inmediata." \
+      "${r}" "${c}"
+
+    printf "\n::: [INFO] Iniciando secuencia controlada de reinicio del servidor en 3 segundos...\n"
+    sleep 3
+
+    # Ejecución resiliente del reinicio del sistema operativo
+    if ! ${SUDO} reboot; then
+      echo ":::" >&2
+      err "No se pudo despachar la orden de reinicio automatizado mediante 'reboot'."
+      echo "::: [ADVERTENCIA] Por favor, ejecuta el comando 'sudo reboot' de forma manual en la terminal." >&2
+      exit 1
+    fi
+  else
+    echo ":::"
+    echo "::: [INFO] El usuario pospuso el reinicio del sistema. Retornando control a la terminal anfitriona."
   fi
 }
 
+# ==============================================================================
+#             PUNTO DE ENTRADA ÚNICO Y DISPARO INICIAL DEL SCRIPT
+# ==============================================================================
 main "$@"
