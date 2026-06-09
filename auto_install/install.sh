@@ -3656,8 +3656,8 @@ askPublicIPOrDNS() {
       --cancel-button "Cancelar" \
       --radiolist "Selecciona el método de direccionamiento que usarán tus perfiles de cliente para conectarse al servidor VPN desde el exterior:\n\n(Usa las flechas para moverte y la barra espaciadora para marcar tu opción)" \
       "${r}" "${c}" 2 \
-      "${IPv4pub}" "Usar IP pública actual (Recomendado si es fija)" ON \
-      "DNS_Entry" "Usar nombre de dominio o DDNS (No-IP, DuckDNS, etc.)" OFF \
+      "${IPv4pub}" "IP pública actual (Recomendado si es fija)" ON \
+      "DNS_Entry" "Nombre de Dominio o DDNS (No-IP, DuckDNS)" OFF \
       3>&1 1>&2 2>&3)"; then
 
       if [[ "${input_meth}" == "${IPv4pub}" ]]; then
