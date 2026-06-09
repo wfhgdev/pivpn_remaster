@@ -3102,8 +3102,8 @@ askCustomProto() {
       --cancel-button "Cancelar" \
       --radiolist "Selecciona el protocolo de la capa de transporte para tu servidor VPN:\n\n• UDP (Altamente Recomendado): Ofrece la mayor velocidad de transferencia, latencia mínima y máxima eficiencia. Es el estándar ideal para streaming, túneles estables y uso general.\n• TCP: Diseñado únicamente si necesitas evadir inspecciones de red profundas o cortafuegos corporativos muy estrictos que bloqueen por completo el tráfico UDP de salida.\n\n(Usa las flechas para moverte, la barra espaciadora para marcar y pulsa Intro):" \
       "${r:-21}" "${c:-78}" 2 \
-      "UDP" "Máximo rendimiento, velocidad y eficiencia de enlace" ON \
-      "TCP" "Mayor capacidad de evasión en redes ultra restrictivas" OFF \
+      "UDP" "Máximo rendimiento, velocidad y eficiencia" ON \
+      "TCP" "Mayor capacidad de evasión en redes restrictivas" OFF \
       3>&1 1>&2 2>&3)"; then
       
       pivpnPROTO="${pivpnPROTO,,}"
