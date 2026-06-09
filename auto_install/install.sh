@@ -281,70 +281,121 @@ main() {
 
 ####### FUNCTIONS ##########
 
+# Genera un flujo de salida formateado hacia el canal de errores estándar (stderr)
+# incluyendo una marca de tiempo estandarizada ISO 8601.
 err() {
-  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $*" >&2
+  echo "[$(date +'%Y-%m-%dT%H:%M:%S%z')] [ERROR]: $*" >&2
 }
 
 rootCheck() {
-  ######## FIRST CHECK ########
-  # Debe ser root para instalar
   echo ":::"
-
+  
+  # Validación de UID: El identificador 0 corresponde exclusivamente a 'root'
   if [[ "${EUID}" -eq 0 ]]; then
-    echo "::: Privilegios de administrador (root) detectados."
+    echo "::: [INFO] Privilegios nativos de administrador (root) confirmados."
+    # Asegura la limpieza de variables de prefijo en entornos root puros
+    export SUDO=""
+    export SUDOE=""
   else
-    echo "::: Elevando privilegios con 'sudo' para la instalación..."
+    # Corrección de redacción: El script no eleva privilegios por sí mismo en este punto,
+    # prepara las variables de entorno para la ejecución delegada posterior.
+    echo "::: [INFO] Usuario estándar detectado. Configurando entorno seguro mediante 'sudo'..."
 
-    # Comprobar si realmente está instalado
-    # Si no lo está, salir porque la instalación no puede completarse
+    # Verifica mediante el gestor nativo de la distribución si 'sudo' se encuentra operativo
     if eval "${CHECK_PKG_INSTALLED} sudo" &> /dev/null; then
       export SUDO="sudo"
       export SUDOE="sudo -E"
+      echo "::: [INFO] Herramienta 'sudo' validada. Se aplicará como prefijo en tareas del sistema."
     else
-      err "::: Por favor, instala sudo o ejecuta esto como root."
+      err "Entorno restrictivo. El instalador requiere binarios de elevación. Por favor, instala 'sudo' o ejecuta el script como root."
       exit 1
     fi
   fi
 }
 
 flagsCheck() {
-  # Comprobar argumentos para las banderas no documentadas
-  for ((i = 1; i <= "$#"; i++)); do
-    j="$((i + 1))"
+  echo ":::"
+  echo "::: [INFO] Iniciando el análisis de argumentos y directivas de ejecución por CLI..."
 
-    case "${!i}" in
-      "--skip-space-check")
+  # SOLUCIÓN DE BUG CRÍTICO: El bucle clásico 'for ((i...))' con expansión indirecta '${!j}'
+  # procesaba los argumentos de las banderas (ej. la ruta de --unattended) como si fueran
+  # banderas independientes en la siguiente iteración. 
+  # Se migra a un control de flujo 'while' nativo basado en desplazamientos ('shift').
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --skip-space-check)
         skipSpaceCheck=true
+        echo "::: [PARAM] Directiva activa: Omitiendo la comprobación de almacenamiento local."
+        shift
         ;;
-      "--unattended")
+      --unattended)
         runUnattended=true
-        unattendedConfig="${!j}"
+        # Validación preventiva: Asegura que exista un argumento posterior y que no sea otra bandera
+        if [[ -n "$2" && "$2" != -* ]]; then
+          unattendedConfig="$2"
+          echo "::: [PARAM] Modo desatendido activo. Cargando configuración desde: ${unattendedConfig}"
+          shift 2
+        else
+          err "La bandera '--unattended' requiere una ruta válida a un archivo de configuración."
+          exit 1
+        fi
         ;;
-      "--use-pihole")
+      --use-pihole)
         usePiholeDNS=true
+        echo "::: [PARAM] Integración activa: Forzando uso del servidor DNS Pi-hole local."
+        shift
         ;;
-      "--reconfigure")
+      --reconfigure)
         reconfigure=true
+        echo "::: [PARAM] Solicitud activa: Iniciando el asistente en modo reconfiguración total."
+        shift
         ;;
-      "--show-unsupported-nics")
+      --show-unsupported-nics)
         showUnsupportedNICs=true
+        echo "::: [PARAM] Modo avanzado: Permitiendo visualización de interfaces de red no homologadas."
+        shift
         ;;
-      "--giturl")
-        pivpnGitUrl="${!j}"
+      --giturl)
+        if [[ -n "$2" && "$2" != -* ]]; then
+          pivpnGitUrl="$2"
+          echo "::: [PARAM] Despliegue modificado: Repositorio origen reasignado a: ${pivpnGitUrl}"
+          shift 2
+        else
+          err "La bandera '--giturl' requiere una URL válida a un repositorio de Git."
+          exit 1
+        fi
         ;;
-      "--gitbranch")
-        pivpnGitBranch="${!j}"
+      --gitbranch)
+        if [[ -n "$2" && "$2" != -* ]]; then
+          pivpnGitBranch="$2"
+          echo "::: [PARAM] Despliegue modificado: Cambiando a la rama de desarrollo: ${pivpnGitBranch}"
+          shift 2
+        else
+          err "La bandera '--gitbranch' requiere especificar el nombre de una rama válida."
+          exit 1
+        fi
         ;;
-      "--noipv6")
+      --noipv6)
         pivpnforceipv6=0
         pivpnenableipv6=0
         pivpnforceipv6route=0
+        echo "::: [PARAM] Directiva estricta: Desactivación completa del direccionamiento IPv6."
+        shift
         ;;
-      "--ignoreipv6leak")
+      --ignoreipv6leak)
         pivpnforceipv6route=0
+        echo "::: [PARAM] Advertencia: Se ignorará la inyección de rutas para mitigar fugas IPv6."
+        shift
+        ;;
+      *)
+        # Captura e informa al administrador sobre argumentos huérfanos o inválidos pasados al script
+        echo "::: [ADVERTENCIA] Parámetro desconocido detectado e ignorado en el flujo: $1"
+        shift
         ;;
     esac
   done
+
+  echo "::: [INFO] Finalizado el análisis de argumentos. Estado del entorno consolidado."
 }
 
 unattendedCheck() {
