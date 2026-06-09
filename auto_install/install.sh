@@ -1191,161 +1191,171 @@ A continuación, evaluaremos tu conexión de red actual. Podrás elegir mantener
 
 
 chooseInterface() {
-  # Encontrar interfaces y permitir al usuario elegir una
-
-  # Convertir las interfaces disponibles en un arreglo para que pueda usarse con
-  # un diálogo de whiptail
+  # ==============================================================================
+  #       DETECCIÓN Y ASIGNACIÓN DE INTERFACES DE RED (IPv4 / IPv6)
+  # ==============================================================================
+  
   local interfacesArray=()
-  # Número de interfaces disponibles
-  local interfaceCount
-  # Almacenamiento de variables de Whiptail
+  local interfaceCount=0
   local chooseInterfaceCmd
-  # Almacenamiento temporal de opciones de Whiptail
   local chooseInterfaceOptions
-  # Variable centinela del bucle
   local firstloop=1
+  local availableInterfaces
+  local line
+  local mode
+  local desiredInterface
 
-  availableInterfaces="$(ip -o link)"
+  echo "::: [INFO] Iniciando el análisis de los adaptadores de red instalados..."
 
+  # OPTIMIZACIÓN: Se unifica la extracción, filtrado y formateo usando un único 
+  # proceso 'awk'. Esto elimina la sobrecarga de múltiples forks de 'cut' y 'grep'.
   if [[ "${showUnsupportedNICs}" == 'true' ]]; then
-    # Mostrar cada interfaz de red, podría ser útil para quienes
-    # instalan PiVPN dentro de máquinas virtuales o en Raspberry Pis
-    # con adaptadores USB
-    availableInterfaces="$(echo "${availableInterfaces}" \
-      | awk '{print $2}')"
+    # Evalúa todas las interfaces del sistema excepto bucles locales y docker
+    availableInterfaces="$(ip -o link | awk '{ sub(/:$/, "", $2); split($2, a, "@"); if (a[1] != "lo" && a[1] !~ /^docker/) print a[1] }')"
   else
-    # Encontrar interfaces de red cuyo estado es UP (ACTIVO)
-    availableInterfaces="$(echo "${availableInterfaces}" \
-      | awk '/state UP/ {print $2}')"
+    # Filtra únicamente los adaptadores cuyo estado operativo actual sea 'UP'
+    availableInterfaces="$(ip -o link | awk '/state UP/ { sub(/:$/, "", $2); split($2, a, "@"); if (a[1] != "lo" && a[1] !~ /^docker/) print a[1] }')"
   fi
 
-  # Omitir interfaces virtuales, loopback y docker
-  availableInterfaces="$(echo "${availableInterfaces}" \
-    | cut -d ':' -f 1 \
-    | cut -d '@' -f 1 \
-    | grep -v -w 'lo' \
-    | grep -v '^docker')"
-
+  # VALIDACIÓN: Detener el proceso si no se localiza infraestructura de red apta
   if [[ -z "${availableInterfaces}" ]]; then
-    err "::: No se pudo encontrar ninguna interfaz de red activa, saliendo"
+    err "No se detectó ninguna interfaz de red activa o compatible en este entorno."
     exit 1
-  else
-    while read -r line; do
-      mode="OFF"
-
-      if [[ "${firstloop}" -eq 1 ]]; then
-        firstloop=0
-        mode="ON"
-      fi
-
-      interfacesArray+=("${line}" "available" "${mode}")
-      ((interfaceCount++))
-    done <<< "${availableInterfaces}"
   fi
 
+  # Construcción del vector de opciones estructurado para la interfaz de Whiptail
+  while read -r line; do
+    [[ -z "${line}" ]] && continue
+    mode="OFF"
+
+    if [[ "${firstloop}" -eq 1 ]]; then
+      firstloop=0
+      mode="ON"  # Preselecciona la primera interfaz de la lista de forma activa
+    fi
+
+    interfacesArray+=("${line}" "Disponible" "${mode}")
+    ((interfaceCount++))
+  done <<< "${availableInterfaces}"
+
+  # ------------------------------------------------------------------------------
+  # FLUJO A: GESTIÓN EN MODO DESATENDIDO / AUTOMATIZADO
+  # ------------------------------------------------------------------------------
   if [[ "${runUnattended}" == 'true' ]]; then
+    echo "::: [INFO] Modo desatendido detectado. Procesando reglas de auto-asignación..."
+
+    # Evaluación y validación del adaptador para IPv4
     if [[ -z "${IPv4dev}" ]]; then
       if [[ "${interfaceCount}" -eq 1 ]]; then
         IPv4dev="${availableInterfaces}"
-        echo -n "::: No se especificó interfaz para IPv4, pero solo ${IPv4dev} "
-        echo "está disponible, usándola"
+        echo "::: [INFO] Interfaz IPv4 omitida en la configuración. Asignando la única disponible: ${IPv4dev}"
       else
-        err "::: No se especificó interfaz para IPv4 y se falló al determinar una"
+        err "No se especificó la interfaz IPv4 y existen múltiples adaptadores en el sistema."
         exit 1
       fi
     else
       if ip -o link | grep -qw "${IPv4dev}"; then
-        echo "::: Usando interfaz: ${IPv4dev} para IPv4"
+        echo "::: [INFO] Interfaz IPv4 validada correctamente: ${IPv4dev}"
       else
-        err "::: La interfaz ${IPv4dev} para IPv4 no existe"
+        err "La interfaz IPv4 preconfigurada (${IPv4dev}) no existe o no está disponible."
         exit 1
       fi
     fi
 
+    # Evaluación y validación del adaptador para IPv6 (Si está habilitado)
     if [[ "${pivpnenableipv6}" -eq 1 ]]; then
       if [[ -z "${IPv6dev}" ]]; then
         if [[ "${interfaceCount}" -eq 1 ]]; then
           IPv6dev="${availableInterfaces}"
-          echo -n "::: No se especificó interfaz para IPv6, pero solo ${IPv6dev} "
-          echo "está disponible, usándola"
+          echo "::: [INFO] Interfaz IPv6 omitida en la configuración. Asignando la única disponible: ${IPv6dev}"
         else
-          err "::: No se especificó interfaz para IPv6 y se falló al determinar una"
+          err "No se especificó la interfaz IPv6 y existen múltiples adaptadores en el sistema."
           exit 1
         fi
       else
         if ip -o link | grep -qw "${IPv6dev}"; then
-          echo "::: Usando interfaz: ${IPv6dev} para IPv6"
+          echo "::: [INFO] Interfaz IPv6 validada correctamente: ${IPv6dev}"
         else
-          err "::: La interfaz ${IPv6dev} para IPv6 no existe"
+          err "La interfaz IPv6 preconfigurada (${IPv6dev}) no existe o no está disponible."
           exit 1
         fi
       fi
     fi
 
+    # Persistencia de variables en el entorno temporal de instalación
     {
       echo "IPv4dev=${IPv4dev}"
-
-      if [[ "${pivpnenableipv6}" -eq 1 ]] \
-        && [[ -z "${IPv6dev}" ]]; then
+      if [[ "${pivpnenableipv6}" -eq 1 ]] && [[ -n "${IPv6dev}" ]]; then
         echo "IPv6dev=${IPv6dev}"
       fi
     } >> "${tempsetupVarsFile}"
 
+    echo "::: [ÉXITO] Mapeo automático de adaptadores completado."
     return
-  else
-    if [[ "${interfaceCount}" -eq 1 ]]; then
-      IPv4dev="${availableInterfaces}"
-
-      {
-        echo "IPv4dev=${IPv4dev}"
-
-        if [[ "${pivpnenableipv6}" -eq 1 ]]; then
-          IPv6dev="${availableInterfaces}"
-          echo "IPv6dev=${IPv6dev}"
-        fi
-      } >> "${tempsetupVarsFile}"
-
-      return
-    fi
   fi
 
+  # ------------------------------------------------------------------------------
+  # FLUJO B: CLÁUSULA DE INTERFAZ ÚNICA (AHORRO DE DIÁLOGOS INTERACTIVOS)
+  # ------------------------------------------------------------------------------
+  if [[ "${interfaceCount}" -eq 1 ]]; then
+    IPv4dev="${availableInterfaces}"
+    echo "::: [INFO] Solo se localizó un adaptador activo (${IPv4dev}). Omitiendo selección manual."
+
+    {
+      echo "IPv4dev=${IPv4dev}"
+      if [[ "${pivpnenableipv6}" -eq 1 ]]; then
+        IPv6dev="${availableInterfaces}"
+        echo "IPv6dev=${IPv6dev}"
+      fi
+    } >> "${tempsetupVarsFile}"
+    return
+  fi
+
+  # ------------------------------------------------------------------------------
+  # FLUJO C: ASISTENTE INTERACTIVO (SELECCIÓN MULTI-INTERFAZ)
+  # ------------------------------------------------------------------------------
+  echo "::: [INFO] Abriendo el cuadro de diálogo para la selección manual de interfaces..."
+
+  # INTERFAZ INTERACTIVA: Selección del dispositivo de red para IPv4
   chooseInterfaceCmd=(whiptail
     --separate-output
-    --radiolist "Elige una interfaz para IPv4 \
-(presiona tecla espacio para seleccionar):" "${r}" "${c}" "${interfaceCount}")
+    --backtitle "Configuración de Interfaces de Red"
+    --title "Selección de Interfaz IPv4"
+    --radiolist "Por favor, elija el adaptador de red principal que utilizará el servidor para el tráfico IPv4\n(Presione ESPACIO para marcar su opción y ENTER para continuar):" 
+    "${r}" "${c}" "${interfaceCount}")
 
-  if chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" \
-    "${interfacesArray[@]}" \
-    2>&1 > /dev/tty)"; then
+  if chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 > /dev/tty)"; then
     for desiredInterface in ${chooseInterfaceOptions}; do
       IPv4dev="${desiredInterface}"
-      echo "::: Usando interfaz: ${IPv4dev}"
+      echo "::: [INFO] Interfaz IPv4 seleccionada por el usuario: ${IPv4dev}"
       echo "IPv4dev=${IPv4dev}" >> "${tempsetupVarsFile}"
     done
   else
-    err "::: Cancelar seleccionado, saliendo...."
+    err "El usuario canceló la selección de la interfaz de red. Cancelando la instalación."
     exit 1
   fi
 
+  # INTERFAZ INTERACTIVA: Selección opcional del dispositivo de red para IPv6
   if [[ "${pivpnenableipv6}" -eq 1 ]]; then
     chooseInterfaceCmd=(whiptail
       --separate-output
-      --radiolist "Elige una interfaz para IPv6, usualmente la misma usada por \
-IPv4 (presiona tecla espacio para seleccionar):" "${r}" "${c}" "${interfaceCount}")
+      --backtitle "Configuración de Interfaces de Red"
+      --title "Selección de Interfaz IPv6"
+      --radiolist "Elija el adaptador de red para el tráfico IPv6\n(Por norma general, se recomienda seleccionar el mismo dispositivo usado para IPv4):" 
+      "${r}" "${c}" "${interfaceCount}")
 
-    if chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" \
-      "${interfacesArray[@]}" \
-      2>&1 > /dev/tty)"; then
+    if chooseInterfaceOptions="$("${chooseInterfaceCmd[@]}" "${interfacesArray[@]}" 2>&1 > /dev/tty)"; then
       for desiredInterface in ${chooseInterfaceOptions}; do
         IPv6dev="${desiredInterface}"
-        echo "::: Usando interfaz: ${IPv6dev}"
+        echo "::: [INFO] Interfaz IPv6 seleccionada por el usuario: ${IPv6dev}"
         echo "IPv6dev=${IPv6dev}" >> "${tempsetupVarsFile}"
       done
     else
-      err "::: Cancelar seleccionado, saliendo...."
+      err "El usuario canceló la asignación de interfaz para IPv6. Cancelando la instalación."
       exit 1
     fi
   fi
+
+  echo "::: [ÉXITO] Enrutamiento de adaptadores configurado y guardado correctamente."
 }
 
 checkStaticIpSupported() {
