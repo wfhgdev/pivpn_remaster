@@ -649,14 +649,17 @@ https://github.com/wfhgdev/pivpn_spanish" "${r}" "${c}"
 }
 
 maybeOSSupport() {
+  # TRAZABILIDAD: Registro inicial para dejar constancia en auditorías del proceso de evaluación del sistema
+  echo "::: [INFO] Evaluando compatibilidad para sistema operativo no verificado oficialmente..."
+
+  # MODO DESATENDIDO: Forzar continuación automatizada si se ha declarado la bandera 'runUnattended'
   if [[ "${runUnattended}" == 'true' ]]; then
-    echo "::: Distribución basada en un sistema compatible."
-    echo -n "::: Estás en un entorno derivado no verificado oficialmente, "
-    echo "continuando con la instalación..."
+    echo "::: [ADVERTENCIA] Entorno operativo alternativo detectado en modo desatendido."
+    echo "::: [INFO] Omitiendo confirmación visual; continuando instalación en la distribución derivada..."
     return
   fi
 
-  # CAMBIO: Se ha suavizado el texto de advertencia para entornos derivados de Ubuntu/Debian. Ahora se transmite confianza al usuario explicando que, al compartir la misma base, el script suele funcionar correctamente ()
+  # INTERFAZ DE USUARIO: Cuadro de diálogo interactivo para validar la continuidad en entornos derivados
   if whiptail \
     --backtitle "Verificación de Compatibilidad" \
     --title "Distribución Alternativa Detectada" --yes-button "Continuar" --no-button "Salir" \
@@ -667,13 +670,18 @@ Nativamente, este instalador está optimizado para:
 • Debian Linux
 • Ubuntu Server
 
-Al estar basado en una de estas distribuciones, el script suele ejecutarse y configurar la VPN de manera exitosa. Te sugerimos avanzar y supervisar el proceso. Puedes reportar tu experiencia en:
+Al estar basado en una de estas distribuciones principales, el script suele ejecutarse y configurar la VPN de manera exitosa. Te sugerimos avanzar y supervisar el proceso.
+
+Puedes reportar cualquier incidencia o tu experiencia de uso en:
 https://github.com/wfhgdev/pivpn_spanish
 
 ¿Deseas continuar con la instalación en este sistema?" "${r}" "${c}"; then
-    echo "::: Continuando la instalación en una distribución derivada..."
+    
+    # TRAZABILIDAD: Registro de confirmación afirmativa del administrador
+    echo "::: [INFO] Consentimiento otorgado. Continuando con el despliegue en distribución derivada..."
   else
-    err "::: Instalación cancelada por el usuario al detectar una distribución alternativa."
+    # ERROR CONTROLADO: Cierre limpio del script delegando el formateo a la función nativa err()
+    err "Instalación abortada por el usuario al rechazar el entorno de distribución alternativa."
     exit 1
   fi
 }
