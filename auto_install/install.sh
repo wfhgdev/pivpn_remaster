@@ -3046,364 +3046,442 @@ installWireGuard() {
 }
 
 askCustomProto() {
-  if [[ "${runUnattended}" == 'true' ]]; then
+  # ==============================================================================
+  #       SELECCIÓN DEL PROTOCOLO DE LA CAPA DE TRANSPORTE (UDP / TCP)
+  # ==============================================================================
+  # Configura el método de transmisión de paquetes para el túnel. Fuerza UDP si
+  # el motor seleccionado es WireGuard, permitiendo alternancia en OpenVPN.
+
+  echo "::: [INFO] Evaluando requerimientos del protocolo de transporte..."
+
+  # Normalizar el protocolo entrante a minúsculas preventivamente si ya existe
+  if [[ -n "${pivpnPROTO}" ]]; then
+    pivpnPROTO="${pivpnPROTO,,}"
+  fi
+
+  # GUARDiÁN CRÍTICO: WireGuard no admite TCP de forma nativa como transporte
+  if [[ "${VPN}" == "wireguard" ]]; then
+    echo "::: [INFO] Motor WireGuard detectado. Forzando el protocolo UDP mandatorio."
+    pivpnPROTO="udp"
+
+  # ------------------------------------------------------------------------------
+  # MODO 1: INSTALACIÓN DESATENDIDA
+  # ------------------------------------------------------------------------------
+  elif [[ "${runUnattended}" == 'true' ]]; then
     if [[ -z "${pivpnPROTO}" ]]; then
-      echo "::: No se especificó un protocolo TCP/IP, usando el protocolo udp predeterminado"
+      echo "::: [AVISO] No se especificó protocolo de transporte. Usando 'udp' por defecto."
       pivpnPROTO="udp"
     else
-      pivpnPROTO="${pivpnPROTO,,}"
-
-      if [[ "${pivpnPROTO}" == "udp" ]] \
-        || [[ "${pivpnPROTO}" == "tcp" ]]; then
-        echo "::: Usando el protocolo ${pivpnPROTO}"
+      if [[ "${pivpnPROTO}" == "udp" || "${pivpnPROTO}" == "tcp" ]]; then
+        echo "::: [INFO] Parámetro desatendido validado con éxito: Usando protocolo ${pivpnPROTO}."
       else
-        err ":: ${pivpnPROTO} no es un protocolo TCP/IP compatible, especifica 'udp' o 'tcp'"
+        err "Error de validación: El protocolo '${pivpnPROTO}' no es compatible. Opciones válidas: 'udp' o 'tcp'."
         exit 1
       fi
     fi
 
-    echo "pivpnPROTO=${pivpnPROTO}" >> "${tempsetupVarsFile}"
-    return
-  fi
-
-  if [[ "${CUSTOMIZE}" -eq 0 ]]; then
+  # ------------------------------------------------------------------------------
+  # MODO 2: INSTALACIÓN INTERACTIVA (ASISTIDA POR PERFIL ÓPTIMO)
+  # ------------------------------------------------------------------------------
+  elif [[ "${CUSTOMIZE:-1}" -eq 0 ]]; then
+    # Si el usuario eligió la instalación rápida recomendada, se auto-asigna UDP
     if [[ "${VPN}" == "openvpn" ]]; then
+      echo "::: [INFO] Aplicando perfil optimizado por defecto: Configurando OpenVPN sobre UDP."
       pivpnPROTO="udp"
-      echo "pivpnPROTO=${pivpnPROTO}" >> "${tempsetupVarsFile}"
-      return
+    fi
+
+  # ------------------------------------------------------------------------------
+  # MODO 3: INSTALACIÓN INTERACTIVA (PERSONALIZACIÓN MANUAL)
+  # ------------------------------------------------------------------------------
+  else
+    # Captura segura de la selección del usuario mediante menú radiolist
+    if pivpnPROTO="$(whiptail \
+      --backtitle "Configuración de Red - Asistente PiVPN" \
+      --title "Selección de Protocolo VPN" \
+      --ok-button "Aceptar" \
+      --cancel-button "Cancelar" \
+      --radiolist "Selecciona el protocolo de la capa de transporte para tu servidor VPN:\n\n• UDP (Altamente Recomendado): Ofrece la mayor velocidad de transferencia, latencia mínima y máxima eficiencia. Es el estándar ideal para streaming, túneles estables y uso general.\n• TCP: Diseñado únicamente si necesitas evadir inspecciones de red profundas o cortafuegos corporativos muy estrictos que bloqueen por completo el tráfico UDP de salida.\n\n(Usa las flechas para moverte, la barra espaciadora para marcar y pulsa Intro):" \
+      "${r:-21}" "${c:-78}" 2 \
+      "UDP" "Máximo rendimiento, velocidad y eficiencia de enlace" ON \
+      "TCP" "Mayor capacidad de evasión en redes ultra restrictivas" OFF \
+      3>&1 1>&2 2>&3)"; then
+      
+      pivpnPROTO="${pivpnPROTO,,}"
+      echo "::: [INFO] Protocolo de red seleccionado por el usuario: ${pivpnPROTO}"
+    else
+      echo "::: [AVISO] Cancelación detectada en el cuadro de diálogo. Abortando instalación de forma segura..." >&2
+      exit 1
     fi
   fi
 
-  # Establecer los protocolos disponibles en un arreglo para que pueda ser usado
-  # con un diálogo de whiptail
-  if pivpnPROTO="$(whiptail \
-    --backtitle "Configuración de Red" \
-    --title "Selección de Protocolo VPN" --ok-button "Aceptar" --cancel-button "Cancelar" \
-    --radiolist "Selecciona el protocolo de transporte para tu VPN. 
-
-• UDP (Recomendado): Ofrece la mayor velocidad y rendimiento. Es el estándar ideal para la mayoría de los usuarios.
-• TCP: Recomendado únicamente si necesitas atravesar redes corporativas o cortafuegos muy restrictivos que bloquean UDP.
-
-(Usa la barra espaciadora para seleccionar tu opción):" "${r}" "${c}" 2 \
-    "UDP" "" ON \
-    "TCP" "" OFF \
-    3>&1 1>&2 2>&3)"; then
-    # Convertir la opción a minúsculas (UDP->udp)
-    pivpnPROTO="${pivpnPROTO,,}"
-    echo "::: Usando protocolo: ${pivpnPROTO}"
-    echo "pivpnPROTO=${pivpnPROTO}" >> "${tempsetupVarsFile}"
-  else
-    err "::: Cancelar seleccionado, saliendo...."
+  # ------------------------------------------------------------------------------
+  # PERSISTENCIA TRANSACCIONAL DE CONFIGURACIÓN
+  # ------------------------------------------------------------------------------
+  if ! echo "pivpnPROTO=${pivpnPROTO}" >> "${tempsetupVarsFile}"; then
+    err "Fallo crítico de E/S: No se pudo volcar la directiva de transporte en '${tempsetupVarsFile}'."
     exit 1
   fi
+
+  echo "::: [ÉXITO] Pila de transporte consolidada correctamente: ${pivpnPROTO^^}"
 }
 
 askCustomPort() {
+  # ==============================================================================
+  #         SELECCIÓN Y VALIDACIÓN DEL PUERTO DE ESCUCHA DEL SERVIDOR
+  # ==============================================================================
+  # Calcula el puerto predeterminado óptimo según el stack de red elegido y asigna
+  # el puerto definitivo controlando el rango de red [1-65535] de forma segura.
+
+  local default_port=51820
+  local port_correct="false"
+  local input_port
+
+  echo "::: [INFO] Evaluando parámetros para la asignación del puerto de red..."
+
+  # Determinar puerto por defecto de forma centralizada según el motor y protocolo
+  if [[ "${VPN}" == "openvpn" ]]; then
+    if [[ "${pivpnPROTO}" == "udp" ]]; then
+      default_port=1194
+    else
+      default_port=443
+    fi
+  fi
+
+  # ------------------------------------------------------------------------------
+  # MODO 1: INSTALACIÓN DESATENDIDA
+  # ------------------------------------------------------------------------------
   if [[ "${runUnattended}" == 'true' ]]; then
     if [[ -z "${pivpnPORT}" ]]; then
-      if [[ "${VPN}" == "wireguard" ]]; then
-        echo "::: No se especificó un puerto, usando el puerto predeterminado 51820"
-        pivpnPORT=51820
-      elif [[ "${VPN}" == "openvpn" ]]; then
-        if [[ "${pivpnPROTO}" == "udp" ]]; then
-          echo "::: No se especificó un puerto, usando el puerto predeterminado 1194"
-          pivpnPORT=1194
-        elif [[ "${pivpnPROTO}" == "tcp" ]]; then
-          echo "::: No se especificó un puerto, usando el puerto predeterminado 443"
-          pivpnPORT=443
-        fi
-      fi
+      echo "::: [AVISO] No se especificó ningún puerto. Utilizando el valor por defecto de la pila: ${default_port}"
+      pivpnPORT="${default_port}"
     else
-      if [[ "${pivpnPORT}" =~ ^[0-9]+$ ]] \
-        && [[ "${pivpnPORT}" -ge 1 ]] \
-        && [[ "${pivpnPORT}" -le 65535 ]]; then
-        echo "::: Usando puerto ${pivpnPORT}"
+      # Validar que el puerto inyectado por archivo cumpla el estándar RFC
+      if [[ "${pivpnPORT}" =~ ^[0-9]+$ ]] && [[ "${pivpnPORT}" -ge 1 ]] && [[ "${pivpnPORT}" -le 65535 ]]; then
+        echo "::: [INFO] Puerto desatendido validado con éxito: ${pivpnPORT}"
       else
-        err "::: ${pivpnPORT} no es un puerto válido, usa un puerto en el rango [1,65535] (inclusive)"
+        err "Error crítico: El puerto '${pivpnPORT}' especificado en la configuración desatendida no es válido (Rango estricto: 1-65535)."
         exit 1
       fi
     fi
 
-    echo "pivpnPORT=${pivpnPORT}" >> "${tempsetupVarsFile}"
-    return
-  fi
-
-  until [[ "${PORTNumCorrect}" == 'true' ]]; do
-    portInvalid="Invalid"
-
-    if [[ "${VPN}" == "wireguard" ]]; then
-      DEFAULT_PORT=51820
-    elif [[ "${VPN}" == "openvpn" ]]; then
-      if [[ "${pivpnPROTO}" == "udp" ]]; then
-        DEFAULT_PORT=1194
-      else
-        DEFAULT_PORT=443
-      fi
-    fi
-
-    if pivpnPORT="$(whiptail \
-      --title "Puerto predeterminado de ${VPN}" \
-      --inputbox "Puedes modificar el puerto predeterminado de ${VPN}.
-Introduce un nuevo valor o presiona 'Enter' para mantener \
-el predeterminado" "${r}" "${c}" "${DEFAULT_PORT}" \
-      3>&1 1>&2 2>&3)"; then
-      if [[ "${pivpnPORT}" =~ ^[0-9]+$ ]] \
-        && [[ "${pivpnPORT}" -ge 1 ]] \
-        && [[ "${pivpnPORT}" -le 65535 ]]; then
-        :
-      else
-        pivpnPORT="${portInvalid}"
-      fi
-    else
-      err "::: Cancelar seleccionado, saliendo...."
-      exit 1
-    fi
-
-    if [[ "${pivpnPORT}" == "${portInvalid}" ]]; then
-      whiptail \
-        --backtitle "Puerto inválido" \
-        --title "Puerto inválido" --ok-button "Aceptar" \
-        --msgbox "Has introducido un número de puerto inválido.
-    Por favor, introduce un número entre 1 - 65535.
-    Si no estás seguro, simplemente mantén el predeterminado." "${r}" "${c}"
-      PORTNumCorrect=false
-    else
-      if whiptail \
-        --backtitle "Especificar puerto personalizado" \
-        --title "Confirmar número de puerto personalizado" --yes-button "Sí" --no-button "No" \
-        --yesno "¿Son correctas estas configuraciones?
-    PUERTO: ${pivpnPORT}" "${r}" "${c}"; then
-        PORTNumCorrect=true
-      else
-        # Si las configuraciones son incorrectas, el bucle continúa
-        PORTNumCorrect=false
-      fi
-    fi
-  done
-
-  # escribir el puerto
-  echo "pivpnPORT=${pivpnPORT}" >> "${tempsetupVarsFile}"
-}
-
-setupPiholeDNS() {
-  # Añadir un archivo hosts personalizado para clientes VPN para que aparezcan
-  # como 'nombre.pivpn' en el panel de Pi-hole además de resolverse
-  # por sus nombres.
-  echo "addn-hosts=/etc/pivpn/hosts.${VPN}" \
-    | ${SUDO} tee "${dnsmasqConfig}" > /dev/null
-
-  # Luego crear un archivo hosts vacío o limpiarlo si existe.
-  ${SUDO} bash -c "> /etc/pivpn/hosts.${VPN}"
-
-  # shellcheck disable=SC1090
-  CORE_VERSION="$(source "$piholeVersions" && echo "${CORE_VERSION}")"
-  if [ "$(echo -e 'v6.0.0\n'"${CORE_VERSION}" | sort -V | head -n 1)" = "v6.0.0" ]; then
-    # Ejecutando Pi-hole v6 o posterior
-    ${SUDO} pihole-FTL --config dns.listeningMode LOCAL
-    ${SUDO} pihole-FTL --config misc.etc_dnsmasq_d true
+  # ------------------------------------------------------------------------------
+  # MODO 2: INSTALACIÓN INTERACTIVA (ASISTIDA POR CUADROS DE DIÁLOGO WHIPTAIL)
+  # ------------------------------------------------------------------------------
   else
-    # Configurar Pi-hole a "Escuchar en todas las interfaces" permite
-    # que dnsmasq escuche en la interfaz VPN mientras permite
-    # consultas solo de hosts cuya dirección esté en la LAN y
-    # subredes VPN.
-    ${SUDO} pihole -a -i local
-  fi
+    until [[ "${port_correct}" == "true" ]]; do
+      if input_port="$(whiptail \
+        --backtitle "Configuración de Red - Asistente PiVPN" \
+        --title "Puerto de Escucha (${VPN^^})" \
+        --ok-button "Continuar" \
+        --cancel-button "Cancelar" \
+        --inputbox "Por defecto, tu servidor ${VPN^^} está configurado para escuchar en el puerto ${default_port}.\n\nSi deseas modificarlo (por ejemplo, para evadir restricciones de red o auditorías de puertos externas), introduce un nuevo valor numérico a continuación. De lo contrario, mantén el valor sugerido:" \
+        "${r:-20}" "${c:-78}" "${default_port}" \
+        3>&1 1>&2 2>&3)"; then
 
-  # Usar la IP de VPN de la Raspberry Pi como servidor DNS.
-  pivpnDNS1="${vpnGw}"
-
-  {
-    echo "pivpnDNS1=${pivpnDNS1}"
-    echo "pivpnDNS2=${pivpnDNS2}"
-  } >> "${tempsetupVarsFile}"
-
-  # Permitir solicitudes DNS entrantes a través de UFW.
-  if [[ "${USING_UFW}" -eq 1 ]]; then
-    ${SUDO} ufw insert 1 allow in \
-      on "${pivpnDEV}" to any port 53 \
-      from "${pivpnNET}/${subnetClass}" > /dev/null
-  else
-    ${SUDO} iptables -I INPUT -i "${pivpnDEV}" \
-      -p udp --dport 53 -j ACCEPT -m comment --comment "pihole-DNS-rule"
-  fi
-}
-
-askClientDNS() {
-  if [[ "${runUnattended}" == 'true' ]]; then
-    if [[ "${usePiholeDNS}" == 'true' ]] \
-      && command -v pihole > /dev/null; then
-      setupPiholeDNS
-      return
-    elif [[ -z "${pivpnDNS1}" ]] \
-      && [[ -n "${pivpnDNS2}" ]]; then
-      pivpnDNS1="${pivpnDNS2}"
-      unset pivpnDNS2
-    elif [[ -z "${pivpnDNS1}" ]] \
-      && [[ -z "${pivpnDNS2}" ]]; then
-      pivpnDNS1="9.9.9.9"
-      pivpnDNS2="149.112.112.112"
-      echo -n "::: Ningún proveedor DNS especificado, "
-      echo "usando DNS Quad9 (${pivpnDNS1} ${pivpnDNS2})"
-    fi
-
-    local INVALID_DNS_SETTINGS=0
-
-    if ! validIP "${pivpnDNS1}"; then
-      INVALID_DNS_SETTINGS=1
-      echo "::: DNS inválido ${pivpnDNS1}"
-    fi
-
-    if [[ -n "${pivpnDNS2}" ]] \
-      && ! validIP "${pivpnDNS2}"; then
-      INVALID_DNS_SETTINGS=1
-      echo "::: DNS inválido ${pivpnDNS2}"
-    fi
-
-    if [[ "${INVALID_DNS_SETTINGS}" -eq 0 ]]; then
-      echo "::: Usando DNS ${pivpnDNS1} ${pivpnDNS2}"
-    else
-      exit 1
-    fi
-
-    {
-      echo "pivpnDNS1=${pivpnDNS1}"
-      echo "pivpnDNS2=${pivpnDNS2}"
-    } >> "${tempsetupVarsFile}"
-    return
-  fi
-
-  # Detectar y ofrecer el uso de Pi-hole
-  if command -v pihole > /dev/null; then
-    if [[ "${usePiholeDNS}" == 'true' ]] \
-      || whiptail \
-        --backtitle "Configurador PiVPN" \
-        --title "Integración con Pi-hole" \
-        --yes-button "Sí, configurar" \
-        --no-button "No, gracias" \
-        --yesno "Se ha detectado una instalación activa de Pi-hole. \
-¿Deseas configurarlo como servidor DNS de tu VPN para disfrutar \
-de bloqueo de anuncios en todos tus dispositivos?" "${r}" "${c}"; then
-      setupPiholeDNS
-      return
-    fi
-  fi
-
-  DNSChoseCmd=(whiptail
-    ---backtitle "Configurador PiVPN" \
-    --title "Selección de Proveedor DNS" --ok-button "Seleccionar" --cancel-button "Cancelar" \
-    --separate-output \
-    --radiolist "Elige el proveedor DNS que usarán tus clientes VPN. \
-(Usa la barra espaciadora para marcar tu opción).
-
-Si deseas ingresar IPs personalizadas, selecciona 'Custom'.
-
-NOTA PARA RESOLUTORES LOCALES:
-Si ejecutas un Servidor DNS local (Pi-hole, AdGuard Home, Unbound, etc.), \
-selecciona 'PiVPN-is-local-DNS'. Asegúrate de que escuche en la \
-IP \"${vpnGw}\" y acepte peticiones desde \"${pivpnNET}/${subnetClass}\"." "${r}" "${c}" 6)
-  DNSChooseOptions=(Google "" on
-    CloudFlare "" off
-    OpenDNS "" off
-    Quad9 "" off
-    AdGuard "" off
-    FamilyShield "" off
-    PiVPN-is-local-DNS "" off
-    Custom "" off)
-
-  if DNSchoices="$("${DNSChoseCmd[@]}" \
-    "${DNSChooseOptions[@]}" \
-    2>&1 > /dev/tty)"; then
-    if [[ "${DNSchoices}" != "Custom" ]]; then
-      echo "::: Usando servidores ${DNSchoices}."
-      declare -A DNS_MAP=(["Google"]="8.8.8.8 8.8.4.4"
-      ["CloudFlare"]="1.1.1.1 1.0.0.1"
-      ["OpenDNS"]="208.67.222.222 208.67.220.220"
-      ["Quad9"]="9.9.9.9 149.112.112.112"
-      ["AdGuard"]="94.140.14.14 94.140.15.15"
-      ["FamilyShield"]="208.67.222.123 208.67.220.123"
-      ["PiVPN-is-local-DNS"]="${vpnGw}")
-      pivpnDNS1=$(awk '{print $1}' <<< "${DNS_MAP["${DNSchoices}"]}")
-      pivpnDNS2=$(awk '{print $2}' <<< "${DNS_MAP["${DNSchoices}"]}")
-    else
-      until [[ "${DNSSettingsCorrect}" == 'true' ]]; do
-        strInvalid="Invalid"
-
-        if pivpnDNS="$(whiptail \
-          --backtitle "Configurador PiVPN" \
-        --title "Servidores DNS Personalizados" --ok-button "Aceptar" cancel-button "Cancelar" \
-        --inputbox "Introduce las direcciones IP de tus servidores DNS de subida, \
-separadas por una coma.
-
-Ejemplo: '1.1.1.1, 9.9.9.9'" "${r}" "${c}" "" \
-          3>&1 1>&2 2>&3)"; then
-          # Procesamiento de las IPs introducidas para extraer el primer y segundo servidor DNS, eliminando espacios y tabulaciones alrededor de las comas
-          pivpnDNS1="$(echo "${pivpnDNS}" \
-            | sed 's/[, \t]\+/,/g' \
-            | awk -F, '{print$1}')"
-          pivpnDNS2="$(echo "${pivpnDNS}" \
-            | sed 's/[, \t]\+/,/g' \
-            | awk -F, '{print$2}')"
-
-          if ! validIP "${pivpnDNS1}" \
-            || [[ ! "${pivpnDNS1}" ]]; then
-            pivpnDNS1="${strInvalid}"
-          fi
-
-          if ! validIP "${pivpnDNS2}" \
-            && [[ "${pivpnDNS2}" ]]; then
-            pivpnDNS2="${strInvalid}"
-          fi
-        else
-          err "::: Cancelar seleccionado, saliendo...."
-          exit 1
-        fi
-
-        if [[ "${pivpnDNS1}" == "${strInvalid}" ]] \
-          || [[ "${pivpnDNS2}" == "${strInvalid}" ]]; then
-          whiptail \
-            --backtitle "Configurador PiVPN" \
-            --title "Error: IP Inválida" --ok-button "Reintentar" \
-            --msgbox "Una o ambas direcciones IP introducidas no son válidas. \
-Por favor, comprueba los datos e inténtalo de nuevo.
-
-Datos detectados:
-  • Servidor DNS 1: ${pivpnDNS1:-(Vacío)}
-  • Servidor DNS 2: ${pivpnDNS2:-(Vacío)}" "${r}" "${c}"
-
-          if [[ "${pivpnDNS1}" == "${strInvalid}" ]]; then
-            pivpnDNS1=""
-          fi
-
-          if [[ "${pivpnDNS2}" == "${strInvalid}" ]]; then
-            pivpnDNS2=""
-          fi
-
-          DNSSettingsCorrect=false
-        else
+        # Validación estricta del rango de puertos TCP/UDP válidos
+        if [[ "${input_port}" =~ ^[0-9]+$ ]] && [[ "${input_port}" -ge 1 ]] && [[ "${input_port}" -le 65535 ]]; then
+          
+          # Diálogo interactivo de confirmación explícita
           if whiptail \
-            --backtitle "Especificar Proveedor(es) DNS de subida" \
-            --title "Proveedor(es) DNS de subida" --yes-button "Sí" --no-button "No" \
-            --yesno "¿Son correctas estas configuraciones?
-    Servidor DNS 1: ${pivpnDNS1}
-    Servidor DNS 2: ${pivpnDNS2}" "${r}" "${c}"; then
-            DNSSettingsCorrect=true
-          else
-            # Si las configuraciones son incorrectas, el bucle continúa
-            DNSSettingsCorrect=false
+            --backtitle "Configuración de Red - Asistente PiVPN" \
+            --title "Confirmar Número de Puerto" \
+            --yes-button "Sí, es correcto" \
+            --no-button "No, modificar" \
+            --yesno "¿Estás seguro de que deseas consolidar el siguiente puerto de escucha?\n\n• Puerto seleccionado: ${input_port}\n\nNota: Recuerda que una vez completada la instalación deberás abrir/redireccionar (Port Forwarding) este puerto en tu router hacia la dirección IP local de este servidor." \
+            "${r:-16}" "${c:-76}"; then
+            
+            pivpnPORT="${input_port}"
+            port_correct="true"
+            echo "::: [INFO] Puerto confirmado por el usuario: ${pivpnPORT}"
           fi
+        else
+          # Alerta visual ante entradas alfanuméricas o fuera de rango
+          whiptail \
+            --backtitle "Error de Parámetro" \
+            --title "Número de Puerto Inválido" \
+            --ok-button "Regresar" \
+            --msgbox "El valor introducido ('${input_port}') no corresponde a un puerto válido.\n\nPor favor, introduce un número entero comprendido estrictamente entre el rango 1 y 65535." \
+            "${r:-14}" "${c:-72}"
         fi
-      done
-    fi
+      else
+        echo "::: [AVISO] Cancelación detectada en el cuadro de diálogo. Abortando instalación de forma segura..." >&2
+        exit 1
+      fi
+    done
+  fi
 
-  else
-    err "::: Cancelación seleccionada. Saliendo..."
+  # ------------------------------------------------------------------------------
+  # PERSISTENCIA TRANSACCIONAL DE CONFIGURACIÓN
+  # ------------------------------------------------------------------------------
+  if ! echo "pivpnPORT=${pivpnPORT}" >> "${tempsetupVarsFile}"; then
+    err "Fallo crítico de E/S: No se pudo escribir la directiva del puerto en '${tempsetupVarsFile}'."
     exit 1
   fi
 
-  {
+  echo "::: [ÉXITO] Puerto de escucha consolidado correctamente: ${pivpnPORT}"
+}
+
+setupPiholeDNS() {
+  # ==============================================================================
+  #       INTEGRACIÓN, CONFIGURACIÓN Y DESPLIEGUE DE DNS CON PI-HOLE
+  # ==============================================================================
+  # Enlaza la interfaz VPN con el motor dnsmasq/FTL de Pi-hole, genera el mapeo
+  # local para la resolución '*.pivpn' y abre de forma segura los puertos de red
+  # en la pila del cortafuegos activo (UFW o Netfilter/Iptables).
+
+  local CORE_VERSION=""
+  local hosts_file="/etc/pivpn/hosts.${VPN}"
+
+  echo "::: [INFO] Iniciando el aprovisionamiento de la integración con Pi-hole DNS..."
+
+  # 1. Configuración de hosts personalizados para resolución inversa dinámica
+  echo "::: [INFO] Registrando ruta de hosts personalizados en el archivo de configuración de dnsmasq..."
+  if ! echo "addn-hosts=${hosts_file}" | ${SUDO} tee "${dnsmasqConfig}" > /dev/null; then
+    err "Fallo crítico de E/S: No se pudo escribir la directiva addn-hosts en '${dnsmasqConfig}'."
+    exit 1
+  fi
+
+  echo "::: [INFO] Inicializando/limpiando el archivo de mapeo local en '${hosts_file}'..."
+  if ! ${SUDO} bash -c "> ${hosts_file}"; then
+    err "Fallo de permisos: No se pudo inicializar o truncar el archivo de hosts '${hosts_file}'."
+    exit 1
+  fi
+
+  # 2. Determinación de la versión de Pi-hole instalada en el sistema de forma segura
+  if [[ -f "${piholeVersions}" ]]; then
+    # shellcheck disable=SC1090
+    CORE_VERSION="$(source "${piholeVersions}" && echo "${CORE_VERSION}")"
+    echo "::: [INFO] Versión de Pi-hole Core detectada en el host: ${CORE_VERSION:-Desconocida}"
+  else
+    echo "::: [AVISO] No se localizó el archivo '${piholeVersions}'. Asumiendo arquitectura heredada."
+  fi
+
+  # Evaluar si se está ejecutando Pi-hole v6 o posterior mediante ordenación semántica
+  if [[ -n "${CORE_VERSION}" ]] && [ "$(echo -e "v6.0.0\n${CORE_VERSION}" | sort -V | head -n 1)" = "v6.0.0" ]; then
+    echo "::: [INFO] Aplicando directivas modernas de escucha para Pi-hole v6+ (FTL-native)..."
+    if ! ${SUDO} pihole-FTL --config dns.listeningMode LOCAL || ! ${SUDO} pihole-FTL --config misc.etc_dnsmasq_d true; then
+      echo "::: [AVISO] Error al aplicar parámetros mediante pihole-FTL. Es posible que requiera un reinicio manual del servicio."
+    fi
+  else
+    # Configurar Pi-hole (v5 o inferior) a "Escuchar en todas las interfaces, permitiendo consultas solo de la LAN y VPN"
+    echo "::: [INFO] Aplicando directivas de escucha perimetral para Pi-hole v5 o inferior..."
+    if ! ${SUDO} pihole -a -i local; then
+      err "Error de configuración externa: El subcomando 'pihole -a -i local' falló en su ejecución."
+      exit 1
+    fi
+  fi
+
+  # 3. Asignación del Servidor DNS y volcado transaccional de variables
+  pivpnDNS1="${vpnGw}"
+  echo "::: [INFO] Vinculando la IP de la puerta de enlace VPN como el servidor DNS primario: ${pivpnDNS1}"
+
+  if ! {
     echo "pivpnDNS1=${pivpnDNS1}"
     echo "pivpnDNS2=${pivpnDNS2}"
-  } >> "${tempsetupVarsFile}"
+  } >> "${tempsetupVarsFile}"; then
+    err "Fallo crítico de E/S: No se pudieron persistir las variables DNS en '${tempsetupVarsFile}'."
+    exit 1
+  fi
+
+  # 4. Aprovisionamiento seguro de reglas de red en el Firewall activo
+  if [[ "${USING_UFW:-0}" -eq 1 ]]; then
+    echo "::: [INFO] Firewall UFW detectado. Insertando regla de entrada prioritaria para el puerto 53 (DNS)..."
+    if ! ${SUDO} ufw insert 1 allow in on "${pivpnDEV}" to any port 53 from "${pivpnNET}/${subnetClass}" > /dev/null; then
+      err "Error de Cortafuegos: UFW rechazó la inserción de la regla DNS en la interfaz '${pivpnDEV}'."
+      exit 1
+    fi
+  else
+    echo "::: [INFO] Firewall IPTables detectado. Inyectando regla Netfilter con marca de comentario..."
+    if ! ${SUDO} iptables -I INPUT -i "${pivpnDEV}" -p udp --dport 53 -j ACCEPT -m comment --comment "pihole-DNS-rule"; then
+      err "Error de Cortafuegos: Netfilter rechazó la regla IPTables en la cadena INPUT sobre la interfaz '${pivpnDEV}'."
+      exit 1
+    fi
+  fi
+
+  echo "::: [ÉXITO] La integración y securización de Pi-hole DNS se ha completado correctamente."
+}
+
+askClientDNS() {
+  # ==============================================================================
+  #         CONFIGURACIÓN Y ASIGNACIÓN DE LOS SERVIDORES DNS DE CLIENTE
+  # ==============================================================================
+  # Gestiona de forma automatizada o interactiva la inyección de resolutores de
+  # nombres en la pila de red de los clientes VPN, mitigando fugas (DNS leaks).
+
+  local dns_correct="false"
+  local input_dns pivpnDNS
+
+  echo "::: [INFO] Evaluando parámetros para la asignación del servicio DNS..."
+
+  # ------------------------------------------------------------------------------
+  # MODO 1: INSTALACIÓN DESATENDIDA
+  # ------------------------------------------------------------------------------
+  if [[ "${runUnattended}" == 'true' ]]; then
+    # Prioridad 1: Integración directa con Pi-hole local
+    if [[ "${usePiholeDNS}" == 'true' ]] && command -v pihole > /dev/null; then
+      echo "::: [INFO] Integración automatizada con Pi-hole local detectada y activa."
+      setupPiholeDNS
+      return
+    
+    # Prioridad 2: Normalización si solo existe el segundo resolutor
+    elif [[ -z "${pivpnDNS1}" && -n "${pivpnDNS2}" ]]; then
+      pivpnDNS1="${pivpnDNS2}"
+      unset pivpnDNS2
+    
+    # Prioridad 3: Asignación por defecto en ausencia de parámetros (Quad9 seguro)
+    elif [[ -z "${pivpnDNS1}" && -z "${pivpnDNS2}" ]]; then
+      pivpnDNS1="9.9.9.9"
+      pivpnDNS2="149.112.112.112"
+      echo "::: [AVISO] Ningún proveedor DNS especificado. Auto-asignando Quad9 corporativo (${pivpnDNS1}, ${pivpnDNS2})."
+    fi
+
+    # Validación estricta de direccionamiento IP sobre parámetros desatendidos
+    local invalid_unattended=0
+    if ! validIP "${pivpnDNS1}"; then
+      echo "::: [ERROR] El valor asignado a pivpnDNS1 ('${pivpnDNS1}') no es una dirección IP válida." >&2
+      invalid_unattended=1
+    fi
+    if [[ -n "${pivpnDNS2}" ]] && ! validIP "${pivpnDNS2}"; then
+      echo "::: [ERROR] El valor asignado a pivpnDNS2 ('${pivpnDNS2}') no es una dirección IP válida." >&2
+      invalid_unattended=1
+    fi
+
+    if [[ "${invalid_unattended}" -ne 0 ]]; then
+      err "Fallo de validación: Los parámetros DNS del archivo desatendido contienen errores sintácticos."
+      exit 1
+    fi
+
+    echo "::: [INFO] Resolutores DNS desatendidos validados: ${pivpnDNS1} ${pivpnDNS2:-(Sin secundario)}"
+
+  # ------------------------------------------------------------------------------
+  # MODO 2: INSTALACIÓN INTERACTIVA (ASISTIDA POR PLAN DE RED)
+  # ------------------------------------------------------------------------------
+  else
+    # Intercepción y acoplamiento dinámico con Pi-hole si coexiste en el host
+    if command -v pihole > /dev/null; then
+      if [[ "${usePiholeDNS}" == 'true' ]] || whiptail \
+        --backtitle "Asistente de Configuración - PiVPN" \
+        --title "Integración Detectada: Pi-hole" \
+        --yes-button "Sí, integrarlos" \
+        --no-button "No, usar otros" \
+        --yesno "Se ha localizado una instancia activa de Pi-hole en este servidor.\n\n¿Deseas configurar Pi-hole como el servidor DNS primario de tus clientes VPN? Esto habilitará de forma automática el bloqueo perimetral de publicidad y malware en todos tus dispositivos móviles vinculados." \
+        "${r:-16}" "${c:-78}"; then
+        
+        echo "::: [INFO] El usuario ha optado por la consolidación nativa con Pi-hole DNS."
+        setupPiholeDNS
+        return
+      fi
+    fi
+
+    # Generación estructurada del menú radiolist principal de proveedores
+    local -a DNSChoseCmd=(whiptail \
+      --backtitle "Asistente de Configuración - PiVPN" \
+      --title "Selección de Proveedor DNS" \
+      --ok-button "Seleccionar" \
+      --cancel-button "Cancelar" \
+      --separate-output \
+      --radiolist "Selecciona el servidor DNS que se inyectará en los perfiles de tus clientes VPN:\n\n(Mueve la selección con las flechas y marca tu opción con la barra espaciadora)\n\nSi deseas usar resolutores corporativos o locales privados que no estén en la lista, desplázate y selecciona 'Personalizado'." \
+      "${r:-22}" "${c:-80}" 8)
+
+    local -a DNSChooseOptions=(
+      "Google" "Resolución global de alta velocidad (8.8.8.8)" ON
+      "CloudFlare" "Máxima privacidad y velocidad de respuesta (1.1.1.1)" OFF
+      "OpenDNS" "Filtros de protección web y estabilidad (208.67.222.222)" OFF
+      "Quad9" "Seguridad avanzada con bloqueo de malware integrado (9.9.9.9)" OFF
+      "AdGuard" "Bloqueo comercial de anuncios y rastreadores web nativo" OFF
+      "FamilyShield" "Filtro restrictivo diseñado para protección parental" OFF
+      "PiVPN-is-local-DNS" "Usar la IP de este servidor (Para AdGuard Home o Unbound propio)" OFF
+      "Personalizado" "Introducir manualmente direcciones IP DNS específicas" OFF
+    )
+
+    if DNSchoices="$("${DNSChoseCmd[@]}" "${DNSChooseOptions[@]}" 2>&1 > /dev/tty)"; then
+      if [[ "${DNSchoices}" != "Personalizado" ]]; then
+        # Mapeo asociativo indexado para la resolución estática de proveedores estándar
+        declare -A DNS_MAP=(
+          ["Google"]="8.8.8.8 8.8.4.4"
+          ["CloudFlare"]="1.1.1.1 1.0.0.1"
+          ["OpenDNS"]="208.67.222.222 208.67.220.220"
+          ["Quad9"]="9.9.9.9 149.112.112.112"
+          ["AdGuard"]="94.140.14.14 94.140.15.15"
+          ["FamilyShield"]="208.67.222.123 208.67.220.123"
+          ["PiVPN-is-local-DNS"]="${vpnGw}"
+        )
+        pivpnDNS1=$(echo "${DNS_MAP["${DNSchoices}"]}" | awk '{print $1}')
+        pivpnDNS2=$(echo "${DNS_MAP["${DNSchoices}"]}" | awk '{print $2}')
+        echo "::: [INFO] Proveedor DNS seleccionado por el usuario: ${DNSchoices} (${pivpnDNS1} ${pivpnDNS2:-(Único)})"
+      
+      else
+        # Bucle transaccional para la validación estricta de IPs personalizadas
+        until [[ "${dns_correct}" == "true" ]]; do
+          if pivpnDNS="$(whiptail \
+            --backtitle "Asistente de Configuración - PiVPN" \
+            --title "Servidores DNS Personalizados" \
+            --ok-button "Validar" \
+            --cancel-button "Cancelar" \
+            --inputbox "Introduce las direcciones IP de tus servidores DNS preferidos separadas por una coma.\n\nEjemplo válido: 1.1.1.1, 9.9.9.9" \
+            "${r:-15}" "${c:-76}" "" \
+            3>&1 1>&2 2>&3)"; then
+
+            # Normalización y extracción limpia eliminando espacios y tabulaciones cruzadas
+            local dns_cleaned
+            dns_cleaned="$(echo "${pivpnDNS}" | tr -d ' \t')"
+            pivpnDNS1="${dns_cleaned%%,*}"
+            pivpnDNS2="${dns_cleaned#*,}"
+            [[ "${pivpnDNS2}" == "${pivpnDNS1}" ]] && pivpnDNS2="" # Evitar duplicación si no hay coma
+
+            local check_fail="false"
+            if ! validIP "${pivpnDNS1}" || [[ -z "${pivpnDNS1}" ]]; then
+              check_fail="true"
+            fi
+            if [[ -n "${pivpnDNS2}" ]] && ! validIP "${pivpnDNS2}"; then
+              check_fail="true"
+            fi
+
+            if [[ "${check_fail}" == "true" ]]; then
+              whiptail \
+                --backtitle "Asistente de Configuración - PiVPN" \
+                --title "Error: Estructura IP Inválida" \
+                --ok-button "Corregir datos" \
+                --msgbox "Una o ambas direcciones IP proporcionadas no cumplen el formato estándar IPv4.\n\nDatos procesados:\n  • DNS Primario: ${pivpnDNS1:-(No detectado/Vacío)}\n  • DNS Secundario: ${pivpnDNS2:-(No detectado/Vacío)}\n\nPor favor, verifica la sintaxis e inténtalo de nuevo." \
+                "${r:-16}" "${c:-72}"
+            else
+              # Diálogo interactivo de confirmación y cierre del bucle
+              if whiptail \
+                --backtitle "Asistente de Configuración - PiVPN" \
+                --title "Confirmar Servidores DNS" \
+                --yes-button "Sí, aplicar" \
+                --no-button "No, modificar" \
+                --yesno "¿Deseas fijar la siguiente configuración DNS personalizada para el túnel?\n\n• Servidor Primario: ${pivpnDNS1}\n• Servidor Secundario: ${pivpnDNS2:-(Ninguno reservado)}" \
+                "${r:-15}" "${c:-74}"; then
+                
+                dns_correct="true"
+                echo "::: [INFO] DNS personalizado confirmado por el usuario: Primario=${pivpnDNS1}, Secundario=${pivpnDNS2:-(Ninguno)}"
+              fi
+            fi
+          else
+            echo "::: [AVISO] Cancelación detectada en la entrada de DNS personalizado. Abortando..." >&2
+            exit 1
+          fi
+        done
+      fi
+    else
+      echo "::: [AVISO] Cancelación detectada en el menú de selección de DNS. Abortando instalación..." >&2
+      exit 1
+    fi
+  fi
+
+  # ------------------------------------------------------------------------------
+  # PERSISTENCIA TRANSACCIONAL DE CONFIGURACIÓN
+  # ------------------------------------------------------------------------------
+  if ! {
+    echo "pivpnDNS1=${pivpnDNS1}"
+    echo "pivpnDNS2=${pivpnDNS2}"
+  } >> "${tempsetupVarsFile}"; then
+    err "Fallo crítico de E/S: No se pudieron persistir las variables DNS en '${tempsetupVarsFile}'."
+    exit 1
+  fi
+
+  echo "::: [ÉXITO] Pila de resolución DNS de cliente consolidada y registrada correctamente."
 }
 
 # Llama a esta función para usar una expresión regular y verificar
