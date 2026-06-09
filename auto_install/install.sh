@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 # PiVPN: Configuración e instalación trivial de OpenVPN o WireGuard
-# La configuración y gestión más sencilla de OpenVPN o WireGuard en Raspberry Pi
-# https://pivpn.io
-# Fuertemente adaptado del proyecto pi-hole.net y...
-# https://github.com/StarshipEngineer/OpenVPN-Setup/
+# La configuración y gestión más sencilla de OpenVPN o WireGuard en Raspberry Pi OS, Debian y Ubuntu.
 export LANG=es_ES.UTF-8
-# Instala con este comando (desde tu Pi):
 export LC_ALL=es_ES.UTF-8
-# curl -sSfL https://install.pivpn.io | bash
-# Asegúrate de tener `curl` instalado
 
 # ==============================================================================
 #                 CONFIGURACIÓN DE RUTAS Y VARIABLES GLOBALES
