@@ -2402,8 +2402,14 @@ cidrToMask() {
 }
 
 setVPNDefaultVars() {
-  # Permitir un subnetClass personalizado a través del archivo desatendido setupVARs.
-  # Usar el valor predeterminado si no se proporciona.
+  # ==============================================================================
+  #         CONFIGURACIÓN DE PARÁMETROS Y MÁSCARAS POR DEFECTO DE LA VPN
+  # ==============================================================================
+  # Inicializa las clases de subred estándar para IPv4 e IPv6 si no han sido
+  # preconfiguradas previamente en el archivo de instalación desatendida.
+
+  echo "::: [INFO] Inicializando máscaras y variables de red por defecto..."
+
   if [[ -z "${subnetClass}" ]]; then
     subnetClass="24"
   fi
@@ -2414,8 +2420,20 @@ setVPNDefaultVars() {
 }
 
 generateRandomSubnet() {
-  # Fuente: https://community.openvpn.net/openvpn/wiki/AvoidRoutingConflicts
-  declare -a excluded_subnets_dec=(
+  # ==============================================================================
+  #       GENERACIÓN AUTOMÁTICA Y SEGURA DE SUBREDES PARA EVITAR CONFLICTOS
+  # ==============================================================================
+  # Escanea las interfaces de red del sistema y subredes comunes de enrutadores
+  # domésticos para encontrar una zona aislada y libre de colisiones IP.
+  # Fuente base: https://community.openvpn.net/openvpn/wiki/AvoidRoutingConflicts
+
+  local source_subnet="${1}"
+  local target_netmask="${2}"
+
+  echo "::: [INFO] Analizando el mapa de direccionamiento local para prevenir solapamientos..."
+
+  # Declaración explícita con ámbito local para evitar contaminación de variables globales
+  local -a excluded_subnets_dec=(
     167772160 167772415   # 10.0.0.0/24
     167772416 167772671   # 10.0.1.0/24
     167837952 167838207   # 10.1.1.0/24
@@ -2430,83 +2448,85 @@ generateRandomSubnet() {
     3232235776 3232236031 # 192.168.1.0/24
   )
 
-  # Añadir rangos numéricos al arreglo anterior
-  readarray -t currently_used_subnets <<< "$(ip route show \
-    | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}')"
+  # OPTIMIZACIÓN DE FLUJO: Uso de mapfile y sustitución de procesos para evitar falsos positivos vacíos
+  local -a currently_used_subnets=()
+  mapfile -t currently_used_subnets < <(ip route show | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\/[0-9]{1,2}' || true)
 
   local used used_ip used_mask
   for used in "${currently_used_subnets[@]}"; do
+    # Protección crítica contra líneas vacías si grep no obtuvo coincidencias
+    [[ -z "${used}" ]] && continue
+    
     used_ip="${used%/*}"
     used_mask="${used##*/}"
 
-    excluded_subnets_dec+=("$(dotIPv4FirstDec "$used_ip" "$used_mask")")
-    excluded_subnets_dec+=("$(dotIPv4LastDec "$used_ip" "$used_mask")")
+    excluded_subnets_dec+=("$(dotIPv4FirstDec "${used_ip}" "${used_mask}")")
+    excluded_subnets_dec+=("$(dotIPv4LastDec "${used_ip}" "${used_mask}")")
   done
 
-  # Nota: la longitud del arreglo excluded_subnets_count es el doble del número de subnets
   local excluded_subnets_count="${#excluded_subnets_dec[@]}"
+  echo "::: [INFO] Se han registrado $((excluded_subnets_count / 2)) rangos de subred IP excluidos."
 
-  local source_subnet="$1"
   local source_ip="${source_subnet%/*}"
-  # shellcheck disable=SC2155
-  local source_ip_dec="$(dotIPv4ToDec "$source_ip")"
   local source_netmask="${source_subnet##*/}"
-  local source_netmask_dec="$((2 ** 32 - 1 ^ (2 ** (32 - source_netmask) - 1)))"
+  
+  # Corrección SC2155: Separación estricta de declaración y asignación dinámica
+  local source_ip_dec
+  source_ip_dec="$(dotIPv4ToDec "${source_ip}")"
+  
+  # OPTIMIZACIÓN: Sustitución de cálculo exponencial por máscaras de bits aritméticas puras
+  local source_netmask_dec=$(( (0xFFFFFFFF << (32 - source_netmask)) & 0xFFFFFFFF ))
+  local first_ip_target_subnet_dec=$(( source_ip_dec & source_netmask_dec ))
+  local total_ips_target_subnet=$(( 1 << (32 - target_netmask) ))
 
-  local target_netmask="$2"
+  # Mapeo y barajado aleatorio para garantizar inspección única por segmento sin repeticiones
+  local subnets_count=$(( 1 << (target_netmask - source_netmask) ))
+  local -a random_perm=()
+  mapfile -t random_perm < <(shuf -i 0-$((subnets_count - 1)) 2>/dev/null || seq 0 $((subnets_count - 1)) | shuf)
 
-  local first_ip_target_subnet_dec="$((source_ip_dec & source_netmask_dec))"
-  local total_ips_target_subnet="$((2 ** (32 - target_netmask)))"
-
-  # Elegir una subred aleatoria haría que se verificaran las mismas subredes varias
-  # veces si el número de subredes fuera pequeño, por lo que en su lugar se escanea
-  # una permutación aleatoria para verificar cada subred solo una vez.
-  local subnets_count="$((2 ** (target_netmask - source_netmask)))"
-  readarray -t random_perm <<< "$(shuf -i 0-"$((subnets_count - 1))")"
-  # random_perm=( 3221 9 8 431 7 [...] )
-
-  # Debido a las limitaciones de rendimiento de bash, no es práctico verificar todas las subredes.
-  # Teniendo en cuenta que el script de instalación no debería colgarse demasiado tiempo incluso
-  # en una Pi Zero, evitamos hacer más de unas 5000 iteraciones.
-  local max_tries="$subnets_count"
-  if [ $((subnets_count * excluded_subnets_count)) -ge 5000 ]; then
-    max_tries="$((5000 / (excluded_subnets_count / 2)))"
+  # Mitigación de sobrecarga en CPUs mononúcleo (ej. Raspberry Pi Zero / arquitecturas embebidas)
+  local max_tries="${subnets_count}"
+  if [[ $((subnets_count * excluded_subnets_count)) -ge 5000 ]]; then
+    max_tries=$(( 5000 / (excluded_subnets_count / 2) ))
   fi
 
   local first_ip_subnet_dec last_ip_subnet_dec
   local first_ip_excluded_subnet_dec last_ip_excluded_subnet_dec
   local overlap
+  local i j
+  local subnet_encontrada="false"
+
   for ((i = 0; i < max_tries; i++)); do
-
-    first_ip_subnet_dec="$((first_ip_target_subnet_dec + total_ips_target_subnet * random_perm[i]))"
-    last_ip_subnet_dec="$((first_ip_subnet_dec + total_ips_target_subnet - 1))"
-
-    overlap=false
+    first_ip_subnet_dec=$(( first_ip_target_subnet_dec + (total_ips_target_subnet * random_perm[i]) ))
+    last_ip_subnet_dec=$(( first_ip_subnet_dec + total_ips_target_subnet - 1 ))
+    overlap="false"
 
     for ((j = 0; j < excluded_subnets_count; j += 2)); do
+      first_ip_excluded_subnet_dec="${excluded_subnets_dec[j]}"
+      last_ip_excluded_subnet_dec="${excluded_subnets_dec[j + 1]}"
 
-      first_ip_excluded_subnet_dec="${excluded_subnets_dec[$j]}"
-      last_ip_excluded_subnet_dec="${excluded_subnets_dec[$j + 1]}"
-
-      #                              |-------------subnet2------------|
-      #           |----------subnet1-----------|                      |
-      #           |                  |         |                      |
-      # first_ip_excluded_subnet_dec | last_ip_excluded_subnet_dec    |
-      #                              |                                |
-      #                   first_ip_subnet_dec                last_ip_subnet_dec
-      if ((last_ip_excluded_subnet_dec >= first_ip_subnet_dec)) \
-        && ((first_ip_excluded_subnet_dec <= last_ip_subnet_dec)); then
-        overlap=true
+      # Verificación lógica estructural de solapamiento de segmentos de red
+      # Rango Excluido:  |----------- [j] ----------- [j+1] -----------|
+      # Rango Candidato:           |------- [first] ------- [last] -------|
+      if (( last_ip_excluded_subnet_dec >= first_ip_subnet_dec )) && (( first_ip_excluded_subnet_dec <= last_ip_subnet_dec )); then
+        overlap="true"
         break
       fi
-
     done
 
-    if ! "$overlap"; then
-      decIPv4ToDot "$first_ip_subnet_dec"
+    # Corrección estética y de rendimiento: Evaluación de cadena estándar en lugar de ejecución directa de string
+    if [[ "${overlap}" == "false" ]]; then
+      decIPv4ToDot "${first_ip_subnet_dec}"
+      subnet_encontrada="true"
       break
     fi
   done
+
+  # Control de contingencia si el espacio de red está completamente saturado
+  if [[ "${subnet_encontrada}" == "false" ]]; then
+    err "Error crítico: No se ha podido determinar una subred IPv4 libre de conflictos tras ${max_tries} intentos."
+    return 1
+  fi
 }
 
 setOpenVPNDefaultVars() {
