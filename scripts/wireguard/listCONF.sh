@@ -8,8 +8,19 @@ export LC_ALL=es_ES.UTF-8
 # ==============================================================================
 #                 CONFIGURACIÓN DE VARIABLES GLOBALES Y ENTORNO
 # ==============================================================================
-
-setupVarsFile="/etc/pivpn/setupVars.conf"
+# Detección automática de la ruta real según el protocolo instalado
+if   [[ -r "/etc/pivpn/wireguard/setupVars.conf" ]]; then
+    setupVarsFile="/etc/pivpn/wireguard/setupVars.conf"
+elif [[ -r "/etc/pivpn/openvpn/setupVars.conf" ]]; then
+    setupVarsFile="/etc/pivpn/openvpn/setupVars.conf"
+else
+    log_err "No se ha detectado el archivo de entorno maestro."
+    log_err "Rutas comprobadas:"
+    log_err "  • /etc/pivpn/wireguard/setupVars.conf"
+    log_err "  • /etc/pivpn/openvpn/setupVars.conf"
+    log_err "La instalación de PiVPN está incompleta o el servidor no ha sido aprovisionado."
+    exit 1
+fi
 
 # Dimensiones adaptativas por defecto para cuadros de diálogo de whiptail
 r=22
